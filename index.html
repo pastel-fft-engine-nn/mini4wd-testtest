@@ -210,6 +210,16 @@ body.from-memory .wave-container { padding-top: 8px; padding-bottom: 8px; }
 .stat-avg small { font-size: 10px; letter-spacing: 0.04em; margin-left: 4px; }
 .realtime-center.is-plain { letter-spacing: 0.02em; line-height: 1.45; }
 
+.cmp-live { margin: 4px 12px 6px; border: 1px solid var(--line); }
+.cmp-live-row { display: flex; }
+.cmp-live-row + .cmp-live-row { border-top: 1px solid var(--line); }
+.cmp-live-cell { flex: 1 1 0; min-width: 0; padding: 3px 2px; text-align: center; }
+.cmp-live-cell + .cmp-live-cell { border-left: 1px solid var(--line); }
+.cmp-live-cell.is-now { background: rgba(255,151,61,.10); }
+.cmp-live-k { font-size: 8px; letter-spacing: 0.04em; color: var(--mute); font-weight: 500; line-height: 1.1; }
+.cmp-live-s { font-family: var(--num); font-size: 13px; font-weight: 500; line-height: 1.05; }
+.cmp-live-d { font-family: var(--num); font-size: 9px; color: var(--mute); line-height: 1.1; }
+.cmp-live-cell.is-now .cmp-live-k { color: var(--ice); }
 .realtime-center {
   text-align: left;
   margin: 6px 0 8px;
@@ -1789,6 +1799,9 @@ body.theme-list #conditionsCard { border-top: 1px solid var(--line); padding-top
 </div>
 <div class="realtime-center" id="statusLine">計測待機中<span class="status-sub">マシン　未設定</span></div>
 
+<div class="cmp-live" id="cmpLive" hidden>
+<div class="cmp-live-row" id="gearLiveRow"></div>
+<div class="cmp-live-row" id="tireLiveRow"></div>
 <div class="realtime-buttons">
 <div class="realtime-btn-row">
 <button class="primary-btn blue" id="startBtn" data-i18n="start">計測開始</button>
@@ -3120,7 +3133,41 @@ function driveLossInfo() {
     return { factor: 1, pct: "100%", text: "駆動が未選択なので、ピニオン・クラウン・プロペラの摩擦は掛けていません。" };
 }
 
-function computeSpeedFromRpm(rpm) {
+function paintGearLive() {
+  const box = document.getElementById("cmpLive");
+  const gearRow = document.getElementById("gearLiveRow");
+  const tireRow = document.getElementById("tireLiveRow");
+  if (!box || !gearRow || !tireRow) return;
+  const set = (typeof isMachineSet === "function") && isMachineSet();
+  const rpm = (typeof currentRpmRaw === "number" && currentRpmRaw > 0) ? currentRpmRaw : 0;
+  if (!set || rpm <= 0) { box.hidden = true; return; }
+  const tire = parseFloat(UI.tireRange.value) || 22.5;
+  const gearLabel = gearOptions[UI.gearRange.value] || "3.7:1";
+  const gear = parseFloat(String(gearLabel).split(":")[0]) || 3.7;
+  const loadPercent = parseFloat(UI.loadFactorRange.value) || 0;
+  const loadFactor = 1 - (loadPercent / 100);
+  const chassisFactor = (typeof chassisLossFactor === "function") ? chassisLossFactor() : 1;
+  function speedAt(ratio, mm) {
+    return (rpm / ratio) * (mm * Math.PI * 60) / 1000000 * loadFactor * chassisFactor;
+  }
+  const now = speedAt(gear, tire);
+  const liveGears = ["3.5:1", "3.7:1", "4.0:1", "4.2:1", "5:1"];
+  const list = liveGears.slice();
+  function cell(label, speed, on) {
+    return '<div class="cmp-live-cell' + (on ? " is-now" : "") + '"><div class="cmp-live-k">' + label + '</div><div class="cmp-live-s">' + speed.toFixed(2) + '</div></div>';
+  }
+  const gears = list.map(function(g) {
+    const ratio = parseFloat(String(g).split(":")[0]) || 1;
+    return cell(g, speedAt(ratio, tire), g === gearLabel);
+  }).join("");
+  const tires = cell((tire - 0.5).toFixed(1) + " mm", speedAt(gear, tire - 0.5), false)
+    + cell(tire.toFixed(1) + " mm", now, true)
+    + cell((tire + 0.5).toFixed(1) + " mm", speedAt(gear, tire + 0.5), false);
+  gearRow.innerHTML = gears + tires;
+  tireRow.innerHTML = "";
+  tireRow.hidden = true;
+  box.hidden = false;
+}function computeSpeedFromRpm(rpm) {
     const tire = parseFloat(UI.tireRange.value);
     const gearRatio = parseFloat(gearOptions[UI.gearRange.value].split(":")[0]);
 
@@ -3231,6 +3278,7 @@ currentRpm = adjustedRpm;
 currentSpeed = speed;
 currentRpmRaw = rawRpm;
 currentSpeedRaw = rawSpeed;
+if (typeof paintGearLive === "function") paintGearLive();
 
 // CURRENT の表示値を先に決める（負荷適用後で判定）
 const dispNow = limitDisplay(Math.round(currentRpm));
@@ -3384,6 +3432,7 @@ function refreshMachineStatusUI() {
   const mark = document.getElementById("cmpShaftMark");
   if (mark) mark.textContent = shaftMarkText();
   paintSpeedBasis();
+  if (typeof paintGearLive === "function") paintGearLive();
   if (!locked) {
     const sum = document.getElementById("cmpSummary");
     const drive = (typeof driveLossInfo === "function") ? driveLossInfo() : { pct: "100%" };
