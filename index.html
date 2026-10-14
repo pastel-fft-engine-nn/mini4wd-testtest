@@ -412,10 +412,13 @@ body.theme-flare:not(.dark-mode) .hist-card:nth-child(4n) { background: #f3eee8;
 }
 .hist-fold-body { display: none; }
 .hist-fold-body.open { display: block; }
-.hist-line + .hist-line { margin-top: 2px; }
+.hist-line { display: grid; grid-template-columns: 0.8fr 1.2fr 1.2fr; column-gap: 8px; align-items: center; }
+.hist-line + .hist-line { margin-top: 4px; }
+.hist-body { display: grid; grid-template-columns: minmax(78px, 0.85fr) 2.3fr; gap: 4px 8px; align-items: start; }
+.hist-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .hist-top { display: flex; align-items: center; gap: 6px; min-height: 16px; }
 .hist-k { display: block; font-size: 8px; line-height: 1.1; letter-spacing: 0.04em; color: var(--mute); font-weight: 700; }
-.hist-v { display: block; font-family: var(--num); font-size: 11px; font-weight: 700; line-height: 1.15; white-space: nowrap; }
+.hist-v { display: block; font-family: var(--num); font-size: 11px; font-weight: 700; line-height: 1.2; white-space: normal; overflow-wrap: anywhere; }
 .hist-name .hist-v { font-family: var(--font); font-size: 12px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; white-space: normal; }
 .hist-card .delete-btn { padding: 1px 5px; font-size: 9px; line-height: 1.4; }
 .hist-card .hist-check { width: 14px; height: 14px; margin: 0; }
@@ -1977,6 +1980,7 @@ body.theme-classic .help-acc { border: none; border-radius: 8px; background: var
 <div class="modal-backdrop" id="helpModalBackdrop">
 <div class="modal">
 <div class="modal-header"><div class="modal-title" data-i18n="help">使い方</div><button class="modal-close" id="helpCloseTop">×</button></div>
+<div id="helpJa">
 <p class="help-note">RPM Memory はモーター音の高さから回転数を推定する測定アプリです。値は推定と机上計算です。公式回転計の代替ではありません。下の項目は、閉じたまま並んでいます。知りたい名前を押すと開きます。</p>
 
 <div class="help-acc open">
@@ -2355,6 +2359,40 @@ The microphone is used to measure motor RPM from sound frequency. Audio is proce
       <button class="primary-btn blue" id="onboardNext" style="flex:1;">つぎへ</button>
     </div>
   </div>
+<div id="helpEn" hidden="">
+<p class="help-note">RPM Memory estimates motor RPM from sound. Values are estimates and desk calculations. It is not a certified tachometer. Tap a heading to open it.</p>
+<div class="help-acc open">
+<button type="button">Screen</button>
+<div class="help-body">
+<p>From the top: the name, the spectrum, the pickup window, MOTOR RPM, SPEED, status, and buttons.</p>
+<p>CURRENT is the live value. AVG is the stable part of this run. MAX and MIN are the high and low of this run. With "count after stable" on, MAX, MIN and AVG start only after 8000 rpm has held for 0.6 seconds.</p>
+<p>SPEED is a desk calculation from RPM, gear and tire. It is not track speed.</p>
+</div>
+</div>
+<div class="help-acc">
+<button type="button">Buttons</button>
+<div class="help-body">
+<p>Start uses the microphone. Lock freezes the number for the chart and writes a lock memo. Save asks for a name and writes a measurement record. Reset clears only the live numbers.</p>
+<p>History is the list of saved measurements. The lock memo in machine setup is a separate list of lock moments. They are not the same.</p>
+<p>Reverse calc opens with the locked numbers, and you can still edit them. The item you solve for is greyed out.</p>
+</div>
+</div>
+<div class="help-acc">
+<button type="button">History</button>
+<div class="help-body">
+<p>Each card is a saved measurement. The left side is the check, delete, name and voltage. Row 1 is motor, RPM and speed. Row 2 is gear, average RPM (RPMA) and average speed (km/hA). Row 3 is tire and date.</p>
+<p>Filter and sort is closed until you tap it. Delete RPM 0 removes records whose RPM is 0.</p>
+</div>
+</div>
+<div class="help-acc">
+<button type="button">Machine setup</button>
+<div class="help-body">
+<p>Set shaft, chassis, motor, voltage, gear, tire and load. Registering a setup asks for a name and stores voltage and running load too.</p>
+<p>There is no name field here. The name is asked when you tap Save on the top screen. The name field inside the lock memo is only for that lock moment.</p>
+</div>
+</div>
+</div>
+</div>
 </div>
 
 <div class="modal-backdrop" id="targetModalBackdrop">
@@ -2503,6 +2541,7 @@ The microphone is used to measure motor RPM from sound frequency. Audio is proce
 <span style="color:var(--mute);font-size:11px;">行を2つ選ぶと差分表示</span>
 </div>
 </div>
+<button type="button" class="secondary-btn gray" id="histDeleteZeroBtn" style="width:100%;margin:0 0 8px;">RPM 0 を削除</button>
 <div class="history-summary" id="historySummary">
 <div class="hs-item"><div class="hs-label">件数</div><div class="hs-value" id="hsCount">0</div></div>
 <div class="hs-item"><div class="hs-label">最高RPM</div><div class="hs-value" id="hsBestRpm">—</div></div>
@@ -4504,7 +4543,7 @@ if (hsDelta) {
 
 UI.historyList.innerHTML = filtered.length
 ? ""
-: "<div style='padding:16px; text-align:center; color:#999;'>履歴はありません</div>";
+: "<div style='padding:16px; text-align:center; color:#999;'>" + (window.APP_LANG === "en" ? "No records" : "履歴はありません") + "</div>";
 
 filtered.forEach((h) => {
 const card = document.createElement("div");
@@ -4528,19 +4567,30 @@ card.className = "hist-card" + (isBest ? " is-best" : "");
 card.innerHTML = `
   <div class="hist-top">
     <input type="checkbox" class="hist-check" data-id="${h.id || ""}" ${checked} onclick="toggleHistSelect('${h.id || ""}')">
-    <button class="delete-btn" onclick="deleteHistory(${state.history.indexOf(h)})">削除</button>
+    <button class="delete-btn" onclick="deleteHistory(${state.history.indexOf(h)})">${window.APP_LANG === "en" ? "Delete" : "削除"}</button>
   </div>
-  <div class="hist-line">
-    <div class="hist-cell hist-name"><span class="hist-v"><span class="${favClass}" onclick="toggleFavorite('${h.id}')">${h.name}</span>${star}${loadBadge}</span></div>
-    ${histCell(histMotorShort(h.motor))}
-    <div class="hist-cell hist-stack"><span class="hist-v hist-avg">${avgSpeedDisplay}</span><span class="hist-v">${speedDisplay}</span></div>
-    <div class="hist-cell hist-stack"><span class="hist-v hist-avg">${avgRpmDisplay}</span><span class="hist-v">${rpmDisplay}</span></div>
-  </div>
-  <div class="hist-line">
-    ${histCell(histNumUnit(h.voltage, "V"))}
-    ${histCell(histGearLabel(h.gear))}
-    ${histCell(histNumUnit(h.tire, "mm"))}
-    ${histCell(histDateOnly(h))}
+  <div class="hist-body">
+    <div class="hist-left">
+      <div class="hist-cell hist-name"><span class="hist-v"><span class="${favClass}" onclick="toggleFavorite('${h.id}')">${h.name}</span>${star}${loadBadge}</span></div>
+      ${histCell(histNumUnit(h.voltage, "V"))}
+    </div>
+    <div class="hist-rows">
+      <div class="hist-line">
+        ${histCell(histMotorShort(h.motor))}
+        ${histCell(rpmDisplay)}
+        ${histCell(speedDisplay)}
+      </div>
+      <div class="hist-line">
+        ${histCell(histGearLabel(h.gear))}
+        ${histCell(avgRpmDisplay)}
+        ${histCell(avgSpeedDisplay)}
+      </div>
+      <div class="hist-line">
+        ${histCell(histNumUnit(h.tire, "mm"))}
+        ${histCell(histDateOnly(h))}
+        ${histCell("")}
+      </div>
+    </div>
   </div>`;
 UI.historyList.appendChild(card);
 });
@@ -4558,9 +4608,22 @@ if (historySortSelect) historySortSelect.addEventListener("change", () => render
   if (!btn || !body) return;
   btn.addEventListener("click", function() {
     const open = body.classList.toggle("open");
-    btn.textContent = open ? "絞り込み・並び替え ▾" : "絞り込み・並び替え ▸";
+    const base = window.APP_LANG === "en" ? "Filter and sort (tap to open)" : "絞り込み・並び替え（押すと開きます）";
+    btn.textContent = base + (open ? " ▾" : " ▸");
   });
 })();
+const histDeleteZeroBtn = document.getElementById("histDeleteZeroBtn");
+if (histDeleteZeroBtn) histDeleteZeroBtn.addEventListener("click", function() {
+  const before = state.history.length;
+  state.history = state.history.filter(function(h) { return Number(h.rpm) > 0; });
+  const removed = before - state.history.length;
+  localStorage.setItem("rpmHistory", JSON.stringify(state.history));
+  if (typeof populateFilters === "function") populateFilters();
+  renderHistory();
+  alert(removed
+    ? (window.APP_LANG === "en" ? removed + " zero-RPM records deleted" : removed + "件の RPM 0 を削除しました")
+    : (window.APP_LANG === "en" ? "No zero-RPM records" : "RPM 0 の記録はありません"));
+});
 
 // フィルタリセットボタン
 document.getElementById("historyResetBtn").addEventListener("click", () => {
@@ -5120,7 +5183,138 @@ window.I18N = {
     contactDelay:"Handled by one person, so replies come whenever there's time."
   }
 };
-window.APP_LANG = localStorage.getItem("rpmLang") === "en" ? "en" : "ja";
+window.EN_MAP = {
+  "絞り込み・並び替え（押すと開きます）": "Filter and sort (tap to open)",
+  "RPM 0 を削除": "Delete RPM 0",
+  "計測履歴": "Saved runs",
+  "保存した計測の一覧です。マシン設定の「ロック瞬間メモ」とは別です。": "Saved measurements. Separate from the lock memo in machine setup.",
+  "お気に入りのみ": "Favorites only",
+  "リセット": "Reset",
+  "検索": "Search",
+  "閉じる": "Close",
+  "並び替え": "Sort",
+  "新しい順": "Newest",
+  "RPM高い順": "Highest RPM",
+  "速度高い順": "Highest speed",
+  "古い順": "Oldest",
+  "行を2つ選ぶと差分表示": "Pick two rows to compare",
+  "件数": "Count",
+  "最高RPM": "Best RPM",
+  "最高速度": "Best speed",
+  "前回比RPM": "RPM delta",
+  "日付": "Date",
+  "名前": "Name",
+  "モーター": "Motor",
+  "速度": "Speed",
+  "電圧": "Voltage",
+  "ギヤ比": "Gear",
+  "タイヤ径": "Tire",
+  "すべて": "All",
+  "削除": "Delete",
+  "保存": "Save",
+  "キャンセル": "Cancel",
+  "保存する": "Save",
+  "名前を入力": "Enter a name",
+  "モーター種類": "Motor type",
+  "選択なし": "None",
+  "両軸": "Dual shaft",
+  "片軸": "Single shaft",
+  "測定設定": "Measure setup",
+  "使い方": "Guide",
+  "設定リセット": "Reset setup",
+  "外観": "Look",
+  "言語": "Language",
+  "ダーク": "Dark",
+  "シャープ": "Sharp",
+  "丸み": "Round",
+  "シンプル": "Plain",
+  "羅列": "List",
+  "ノイズ閾値（TH）": "Noise threshold (TH)",
+  "RPM校正係数": "RPM calibration",
+  "負荷適用値を並べて表示": "Show raw values beside load",
+  "安定してから MAX / MIN / AVG を数える": "Count MAX / MIN / AVG after stable",
+  "マシン設定": "Machine",
+  "ロック瞬間メモ": "Lock memo",
+  "反映して閉じる": "Apply and close",
+  "この設定を登録": "Save this setup",
+  "名前の聞き方": "When the name is asked",
+  "設定のお気に入り": "Setup favorites",
+  "走行負荷 (%)": "Running load (%)",
+  "駆動": "Shaft",
+  "シャーシ": "Chassis",
+  "指定なし": "None",
+  "共通（指定なし）": "Common (none)",
+  "未選択": "Not selected",
+  "逆算電卓": "Reverse calc",
+  "求めたいもの": "Solve for",
+  "必要なタイヤ径 mm": "Needed tire mm",
+  "必要なモーター回転数 rpm": "Needed motor rpm",
+  "必要なギヤ比": "Needed gear",
+  "モーター回転数 (rpm)": "Motor RPM",
+  "速度 (km/h)": "Speed (km/h)",
+  "タイヤ径 (mm)": "Tire (mm)",
+  "目標回転": "Target RPM",
+  "設定する": "Set",
+  "解除": "Clear",
+  "目標 (rpm)": "Target (rpm)",
+  "たたむ": "Fold",
+  "開く": "Open",
+  "スペクトラム": "Spectrum",
+  "マイク": "Mic",
+  "集音フィルタ (RPM範囲)": "Pickup window (RPM)",
+  "電圧別比較表": "Voltage map",
+  "小数2位": "2 decimals",
+  "比較表条件": "Chart conditions",
+  "履歴はありません": "No records",
+  "この履歴を削除しますか？": "Delete this record?",
+  "ロックした瞬間のメモです。トップの「履歴」とは別です。トップの履歴は、保存した計測の一覧です。": "This is a memo of lock moments. It is not the saved-run list on the top screen."
+};
+function applyStaticLang(lang) {
+  const en = lang === "en";
+  const jaHelp = document.getElementById("helpJa");
+  const enHelp = document.getElementById("helpEn");
+  if (jaHelp) jaHelp.hidden = en;
+  if (enHelp) enHelp.hidden = !en;
+  const map = window.EN_MAP;
+  const keys = Object.keys(map).sort(function(a, b) { return b.length - a.length; });
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(function(node) {
+    if (node.parentElement && node.parentElement.closest && node.parentElement.closest("#helpJa, #helpEn, script, style")) return;
+    if (!node.__ja) node.__ja = node.nodeValue;
+    const src = node.__ja;
+    if (!en) { node.nodeValue = src; return; }
+    let out = src;
+    keys.forEach(function(k) {
+      if (out.indexOf(k) >= 0) out = out.split(k).join(map[k]);
+    });
+    node.nodeValue = out;
+  });
+  document.querySelectorAll("input[placeholder], textarea[placeholder]").forEach(function(el) {
+    if (!el.dataset.jaPh) el.dataset.jaPh = el.getAttribute("placeholder") || "";
+    const src = el.dataset.jaPh;
+    if (!en) { el.setAttribute("placeholder", src); return; }
+    let out = src;
+    keys.forEach(function(k) { if (out.indexOf(k) >= 0) out = out.split(k).join(map[k]); });
+    el.setAttribute("placeholder", out);
+  });
+  document.querySelectorAll("option").forEach(function(el) {
+    if (!el.dataset.ja) el.dataset.ja = el.textContent;
+    const src = el.dataset.ja;
+    if (!en) { el.textContent = src; return; }
+    let out = src;
+    keys.forEach(function(k) { if (out.indexOf(k) >= 0) out = out.split(k).join(map[k]); });
+    el.textContent = out;
+  });
+  const fold = document.getElementById("histFoldBtn");
+  if (fold) {
+    const open = document.getElementById("histFoldBody") && document.getElementById("histFoldBody").classList.contains("open");
+    fold.textContent = (en ? "Filter and sort (tap to open)" : "絞り込み・並び替え（押すと開きます）") + (open ? " ▾" : " ▸");
+  }
+  if (typeof renderHistory === "function") renderHistory();
+  if (typeof window.renderLockSnaps === "function") window.renderLockSnaps();
+}window.APP_LANG = localStorage.getItem("rpmLang") === "en" ? "en" : "ja";
 function tt(key) {
   const pack = (window.I18N[window.APP_LANG] || window.I18N.ja);
   return pack[key] || window.I18N.ja[key] || key;
@@ -5151,6 +5345,7 @@ function applyLang(lang) {
     b.classList.toggle("is-on", b.getAttribute("data-lang") === lang);
   });
   if (typeof refreshMachineStatusUI === "function") refreshMachineStatusUI();
+  if (typeof applyStaticLang === "function") applyStaticLang(lang);
 }
 document.querySelectorAll(".lang-pick").forEach(function(b) {
   b.addEventListener("click", function() { applyLang(b.getAttribute("data-lang")); });
