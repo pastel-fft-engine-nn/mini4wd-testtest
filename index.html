@@ -1797,12 +1797,11 @@ body.theme-list #conditionsCard { border-top: 1px solid var(--line); padding-top
 
 </div>
 </div>
-<div class="realtime-center" id="statusLine">計測待機中<span class="status-sub">マシン　未設定</span></div>
-
 <div class="cmp-live" id="cmpLive" hidden="">
 <div class="cmp-live-row" id="gearLiveRow"></div>
 <div class="cmp-live-row" id="tireLiveRow"></div>
 </div>
+<div class="realtime-center" id="statusLine">計測待機中<span class="status-sub">マシン　未設定</span></div>
 <div class="realtime-buttons">
 <div class="realtime-btn-row">
 <button class="primary-btn blue" id="startBtn" data-i18n="start">計測開始</button>
@@ -1876,6 +1875,17 @@ body.theme-list #conditionsCard { border-top: 1px solid var(--line); padding-top
 </thead>
 <tbody id="comparisonBody"></tbody>
 </table>
+</div>
+
+<div id="lockTune" hidden="" style="margin:6px 12px 10px;padding:6px 8px;border:1px solid var(--line);">
+  <div class="setting-item" style="gap:2px;">
+    <div class="setting-label"><span>電圧</span><span class="setting-value" id="lockVoltLabel">2.8 V</span></div>
+    <input type="range" id="lockVoltRange" min="2.2" max="3.5" step="0.1" value="2.8">
+  </div>
+  <div class="setting-item" style="gap:2px;margin-top:6px;">
+    <div class="setting-label"><span>ギヤ比</span><span class="setting-value" id="lockGearLabel">3.7:1</span></div>
+    <input type="range" id="lockGearRange" min="0" max="4" step="1" value="1">
+  </div>
 </div>
 </section>
 </div>
@@ -3157,16 +3167,14 @@ function paintGearLive() {
   function cell(label, speed, on) {
     return '<div class="cmp-live-cell' + (on ? " is-now" : "") + '"><div class="cmp-live-k">' + label + '</div><div class="cmp-live-s">' + speed.toFixed(2) + '</div></div>';
   }
-  const gears = list.map(function(g) {
+  gearRow.innerHTML = list.map(function(g) {
     const ratio = parseFloat(String(g).split(":")[0]) || 1;
     return cell(g, speedAt(ratio, tire), g === gearLabel);
   }).join("");
-  const tires = cell((tire - 0.5).toFixed(1) + " mm", speedAt(gear, tire - 0.5), false)
+  tireRow.innerHTML = cell((tire - 0.5).toFixed(1) + " mm", speedAt(gear, tire - 0.5), false)
     + cell(tire.toFixed(1) + " mm", now, true)
     + cell((tire + 0.5).toFixed(1) + " mm", speedAt(gear, tire + 0.5), false);
-  gearRow.innerHTML = gears + tires;
-  tireRow.innerHTML = "";
-  tireRow.hidden = true;
+  tireRow.hidden = false;
   box.hidden = false;
 }function computeSpeedFromRpm(rpm) {
     const tire = parseFloat(UI.tireRange.value);
@@ -3608,8 +3616,7 @@ if (locked) {
 const lockRaw = (currentRpmRaw > 0) ? currentRpmRaw : 0;
 lockedSnapshot = { rpm: currentRpm, speed: currentSpeed, rpmRaw: lockRaw };
 buildComparisonTable(lockRaw);
-UI.statusLine.classList.add("is-plain");
-UI.statusLine.textContent = "ロック中。比較表の起点は " + Math.round(lockRaw) + " rpm。速度の条件は " + ((UI.voltageLabel && UI.voltageLabel.textContent) || "") + "、ギヤ " + ((UI.gearLabel && UI.gearLabel.textContent) || "") + "、タイヤ " + ((UI.tireLabel && UI.tireLabel.textContent) || "") + "。";
+UI.statusLine.classList.remove("is-plain");
 try {
   const snaps = JSON.parse(localStorage.getItem("rpmLockSnaps") || "[]");
   const gear = (document.getElementById("machineGearSelect") || {}).value || "";
@@ -3634,7 +3641,48 @@ lockedSnapshot = null;
 UI.statusLine.classList.remove("is-plain");
 UI.statusLine.textContent = running ? "MEASURING — 解析中" : "READY — 計測待機中";
 }
+const tune = document.getElementById("lockTune");
+if (tune) tune.hidden = !locked;
+if (locked) syncLockTune();
 });
+function syncLockTune() {
+  const v = document.getElementById("voltageRange");
+  const g = document.getElementById("gearRange");
+  const vr = document.getElementById("lockVoltRange");
+  const gr = document.getElementById("lockGearRange");
+  const vl = document.getElementById("lockVoltLabel");
+  const gl = document.getElementById("lockGearLabel");
+  if (vr && v) vr.value = v.value;
+  if (gr && g) gr.value = Math.min(4, parseInt(g.value, 10) || 0);
+  if (vl && v) vl.textContent = v.value + " V";
+  if (gl && g) gl.textContent = (g.options[g.selectedIndex] || {}).textContent || "";
+}
+(function bindLockTune() {
+  const vr = document.getElementById("lockVoltRange");
+  const gr = document.getElementById("lockGearRange");
+  if (vr) vr.addEventListener("input", function() {
+    const v = document.getElementById("voltageRange");
+    if (!v) return;
+    v.value = vr.value;
+    v.dispatchEvent(new Event("change"));
+    const vl = document.getElementById("lockVoltLabel");
+    if (vl) vl.textContent = vr.value + " V";
+    if (typeof locked !== "undefined" && locked && typeof buildComparisonTable === "function") {
+      buildComparisonTable((currentRpmRaw > 0) ? currentRpmRaw : 0);
+    }
+  });
+  if (gr) gr.addEventListener("input", function() {
+    const g = document.getElementById("gearRange");
+    if (!g) return;
+    g.value = gr.value;
+    g.dispatchEvent(new Event("change"));
+    const gl = document.getElementById("lockGearLabel");
+    if (gl) gl.textContent = (g.options[g.selectedIndex] || {}).textContent || "";
+    if (typeof locked !== "undefined" && locked && typeof buildComparisonTable === "function") {
+      buildComparisonTable((currentRpmRaw > 0) ? currentRpmRaw : 0);
+    }
+  });
+})();
 
 /* リセット：表示だけ消す（計測は継続） */
 UI.resetBtn.addEventListener("click", () => {
@@ -5017,12 +5065,12 @@ function publishToMemory(showAlert) {
     {
       k: "2 / 3",
       t: "マイクを近づけて測る",
-      html: "<p class=\"onboard-p\">「計測開始」を押し、マイクをモーターに近づけます。グラフの山が回転の目安です。</p><p class=\"onboard-p\">周囲がうるさいときは集音範囲を絞ってください。点線の TH はノイズ閾値です。上げすぎるとモーター自身も拾いにくくなります。</p>"
+      html: "<p class=\"onboard-p\">「計測開始」を押し、マイクをモーターに近づけます。グラフの山が回転の目安です。</p><p class=\"onboard-p\">周囲がうるさいときは集音範囲を絞ってください。点線の TH はノイズ閾値です。上げすぎるとモーター自身も拾いにくくなります。</p><p class=\"onboard-p\">スペクトラムの表は、たたんで小さくできます。</p>"
     },
     {
       k: "3 / 3",
       t: "安定したらロック",
-      html: "<p class=\"onboard-p\">数字が落ち着いたらロックします。その値で机上速度・比較表・保存が使えます。値は目安です。</p><p class=\"onboard-p\">マイクを使います / Microphone access</p><p class=\"onboard-p\">モーター音の周波数から回転数（RPM）を測定するためにマイクを使います。音声は端末内だけで処理し、サーバーへ送信しません。</p><p class=\"onboard-en\">The microphone is used to measure motor RPM from sound frequency. Audio is processed on this device only and is not sent to any server.</p>"
+      html: "<p class=\"onboard-p\">数字が落ち着いたらロックします。その値で机上速度・比較表・保存が使えます。値は目安です。</p><p class=\"onboard-p\">マシン設定を行えば、簡易比較表が表れます。</p><p class=\"onboard-p\">マイクを使います / Microphone access</p><p class=\"onboard-p\">モーター音の周波数から回転数（RPM）を測定するためにマイクを使います。音声は端末内だけで処理し、サーバーへ送信しません。</p><p class=\"onboard-en\">The microphone is used to measure motor RPM from sound frequency. Audio is processed on this device only and is not sent to any server.</p>"
     }
   ];
   const backdrop = document.getElementById("onboardBackdrop");
