@@ -187,6 +187,35 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-history-lap.best { color: #34c759; font-weight: 600; }
 .sw-history-memo { width: 100%; box-sizing: border-box; margin-top: 8px; border-radius: 8px; border: 1px solid #48484a; background: #2c2c2e; color: #f2f2f7; padding: 8px; font-size: 16px; }
 .sw-history-note { color: #8e8e93; font-size: 11px; line-height: 1.4; margin: 6px 0 10px; }
+.sw-view { display: none; position: fixed; inset: 0; z-index: 300; background: #0d0d0f; }
+.sw-view.active { display: flex; justify-content: center; }
+.sw-view-inner { width: 100%; max-width: 480px; height: 100%; background: #1c1c1e; color: #fff; overflow-y: auto; box-sizing: border-box; padding: 20px 18px max(28px, env(safe-area-inset-bottom)); }
+.sw-view-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.sw-view-back { background: none; border: none; color: #7EC0E0; font-size: 15px; font-weight: 600; cursor: pointer; padding: 4px 0; }
+.sw-view-title { font-size: 16px; font-weight: 700; }
+.sw-history-btn { background: #3a3a3c; color: #fff; }
+.sw-settings-btn { background: #48484a; color: #fff; }
+.sw-loc-head { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.sw-loc-row { background: rgba(255,255,255,0.06); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.sw-loc-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sw-loc-name { font-weight: 700; font-size: 14px; }
+.sw-loc-meta { color: #aeaeb2; font-size: 12px; margin-left: 8px; font-variant-numeric: tabular-nums; }
+.sw-loc-edit-btn { background: #3a3a3c; color: #fff; border: none; border-radius: 6px; padding: 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; flex: 0 0 auto; }
+.sw-loc-editor { display: none; margin-top: 8px; gap: 8px; }
+.sw-loc-editor.open { display: flex; }
+.sw-loc-editor input { flex: 1; min-width: 0; border-radius: 8px; border: 1px solid #48484a; background: #2c2c2e; color: #f2f2f7; padding: 8px; font-size: 16px; }
+.sw-loc-editor button { background: #6BAFD6; color: #fff; border: none; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; flex: 0 0 auto; }
+.sw-history-mainrow { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.sw-history-loc { color: #aeaeb2; font-size: 12px; flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-history-chev { color: #aeaeb2; font-size: 11px; flex: 0 0 auto; }
+.sw-history-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex: 0 0 auto; }
+.sw-history-body { margin-top: 8px; }
+.sw-photo-box { margin-top: 10px; }
+.sw-photo-img { width: 100%; border-radius: 6px; display: block; cursor: pointer; }
+.sw-photo-btn { background: #3a3a3c; color: #fff; border: none; border-radius: 6px; padding: 10px 14px; font-size: 13px; font-weight: 700; cursor: pointer; margin: 0 8px 4px 0; }
+.sw-photo-full { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
+.sw-photo-full.active { display: flex; }
+.sw-photo-full img { max-width: 100%; max-height: 100%; }
 
 
 </style>
@@ -213,14 +242,40 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
         <button type="button" class="sw-lap" id="swLapBtn" onclick="swLap()" disabled>ラップ</button>
         <button type="button" class="sw-reset" onclick="swReset()">リセット</button>
       </div>
-      <div class="stopwatch-laps" id="swLaps"></div>
-      <div class="sw-history">
-        <div class="sw-history-head">📋 履歴（自動保存）</div>
-        <div id="swHistoryList"></div>
-        <p class="sw-history-note">ストップすると、その回のタイムとラップが自動で保存されます。保存先はこの端末のブラウザ内です（保存数・文字数は端末の容量しだい）。</p>
+      <div class="stopwatch-btns">
+        <button type="button" class="sw-history-btn" id="swHistoryBtn" onclick="swOpenHistory()">📋 履歴</button>
+        <button type="button" class="sw-settings-btn" id="swSettingsBtn" onclick="swOpenSettings()">⚙️ 設定</button>
       </div>
-      <details class="sw-signal-settings" id="swSignalSettings">
-        <summary>⚙️ スタート合図の設定</summary>
+      <div class="stopwatch-laps" id="swLaps"></div>
+
+      <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:10px;">単位は秒です。ベストラップも自動で更新します。</p>
+    </div>
+  </div>
+
+
+  <!-- 履歴画面 -->
+  <div class="sw-view" id="swHistoryView">
+    <div class="sw-view-inner">
+      <div class="sw-view-head">
+        <button type="button" class="sw-view-back" onclick="swCloseViews()">← 戻る</button>
+        <div class="sw-view-title">履歴</div>
+      </div>
+      <div class="sw-loc-head">📍 場所ごとの最速</div>
+      <div id="swLocList"></div>
+      <div class="sw-loc-head" style="margin-top:18px;">📋 記録（タップで開く）</div>
+      <div id="swHistoryList"></div>
+      <p class="sw-history-note">ストップすると、その回のタイムとラップが自動で保存され、あわせてGPSで場所も記録します（取れない環境では場所なしになります）。保存先はこの端末のブラウザ内です（保存数・文字数・写真は端末の容量しだい）。</p>
+    </div>
+  </div>
+
+  <!-- 設定画面 -->
+  <div class="sw-view" id="swSettingsView">
+    <div class="sw-view-inner">
+      <div class="sw-view-head">
+        <button type="button" class="sw-view-back" onclick="swCloseViews()">← 戻る</button>
+        <div class="sw-view-title">設定</div>
+      </div>
+      <div class="sw-signal-settings" id="swSignalSettings">
         <label>基本モード
           <select id="swSignalMode" onchange="swSaveSignalSettings()">
             <option value="off">合図なし（即スタート）</option>
@@ -265,11 +320,14 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
           スタート＝すぐ計測／合図＋計測＝この画面のまま合図後に計測／シグナルのみ＝大画面合図だけ（計測しない）。
           振動は Android 等の対応ブラウザのみ動作します。iPhone の Safari は仕様上バイブ非対応です。
         </p>
-      </details>
-      <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:10px;">単位は秒です。ベストラップも自動で更新します。</p>
+      </div>
     </div>
   </div>
 
+  <input type="file" id="swPhotoInput" accept="image/*" onchange="swOnPhotoFile(this)" style="display:none;" />
+  <div class="sw-photo-full" id="swPhotoFull" onclick="swClosePhoto()">
+    <img id="swPhotoFullImg" alt="写真" />
+  </div>
 
 <script>
 // ===== タイム計測（ストップウォッチ） =====
@@ -845,6 +903,7 @@ function openStopwatch() {
   swLoadSignalSettings();
   buildSwDots();
   swLoadHistory();
+  swLoadLocations();
   document.getElementById('stopwatchOverlay').classList.add('active');
   renderSwLaps();
   renderSwHistory();
@@ -956,7 +1015,9 @@ function swAutoSaveHistory() {
     ts: Date.now(),
     totalMs: swLastMs,
     laps: swLaps.map(function(l) { return { split: l.split, total: l.total }; }),
-    memo: ''
+    memo: '',
+    locationId: null,
+    photo: null
   };
   var idx = -1;
   for (var i = 0; i < swHistory.length; i++) {
@@ -964,6 +1025,8 @@ function swAutoSaveHistory() {
   }
   if (idx >= 0) {
     rec.memo = swHistory[idx].memo || '';
+    rec.locationId = swHistory[idx].locationId || null;
+    rec.photo = swHistory[idx].photo || null;
     swHistory[idx] = rec;
   } else {
     swHistory.unshift(rec);
@@ -973,6 +1036,8 @@ function swAutoSaveHistory() {
     if (sub) sub.textContent = '履歴を保存できませんでした（端末の空き容量不足の可能性）';
   }
   renderSwHistory();
+  renderSwLocations();
+  if (!rec.locationId) swAcquireLocation(rec);
 }
 function swDeleteHistory(id) {
   if (!confirm('この履歴を削除しますか？')) return;
@@ -1000,26 +1065,45 @@ function renderSwHistory() {
   swHistory.forEach(function(rec) {
     var card = document.createElement('div');
     card.className = 'sw-history-card';
-    var top = document.createElement('div');
-    top.className = 'sw-history-top';
+    // 畳んだ状態の見出し行（日時・合計・場所・写真サムネイル）
+    var head = document.createElement('div');
+    head.className = 'sw-history-mainrow';
     var dateEl = document.createElement('span');
     dateEl.className = 'sw-history-date';
     dateEl.textContent = swFmtDateTime(rec.ts);
     var totalEl = document.createElement('span');
     totalEl.className = 'sw-history-total';
     totalEl.textContent = formatSwSeconds(rec.totalMs) + ' 秒';
-    var del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'sw-history-del';
-    del.textContent = '削除';
-    del.addEventListener('click', function() { swDeleteHistory(rec.id); });
     var left = document.createElement('span');
     left.appendChild(dateEl);
     left.appendChild(document.createTextNode('　'));
     left.appendChild(totalEl);
-    top.appendChild(left);
-    top.appendChild(del);
-    card.appendChild(top);
+    head.appendChild(left);
+    var locEl = document.createElement('span');
+    locEl.className = 'sw-history-loc';
+    locEl.textContent = swLocName(rec);
+    head.appendChild(locEl);
+    if (rec.photo) {
+      var thumb = document.createElement('img');
+      thumb.className = 'sw-history-thumb';
+      thumb.src = rec.photo;
+      thumb.alt = '写真';
+      head.appendChild(thumb);
+    }
+    var chev = document.createElement('span');
+    chev.className = 'sw-history-chev';
+    chev.textContent = '▼';
+    head.appendChild(chev);
+    card.appendChild(head);
+    // 展開部分（ラップ・メモ・写真・削除）
+    var body = document.createElement('div');
+    body.className = 'sw-history-body';
+    body.style.display = 'none';
+    head.addEventListener('click', function() {
+      var open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : '';
+      chev.textContent = open ? '▼' : '▲';
+    });
     if (rec.laps && rec.laps.length) {
       var bestSplit = Math.min.apply(null, rec.laps.map(function(l) { return l.split; }));
       rec.laps.forEach(function(l, i) {
@@ -1032,7 +1116,7 @@ function renderSwHistory() {
         b.textContent = formatSwSeconds(l.split) + ' / 通算 ' + formatSwSeconds(l.total);
         row.appendChild(a);
         row.appendChild(b);
-        card.appendChild(row);
+        body.appendChild(row);
       });
     }
     var memo = document.createElement('input');
@@ -1041,8 +1125,244 @@ function renderSwHistory() {
     memo.placeholder = 'メモ（例：コースアウト、ブレーキ甘め）';
     memo.value = rec.memo || '';
     memo.addEventListener('input', function() { swSetHistoryMemo(rec.id, memo.value); });
-    card.appendChild(memo);
+    body.appendChild(memo);
+    var photoBox = document.createElement('div');
+    photoBox.className = 'sw-photo-box';
+    if (rec.photo) {
+      var img = document.createElement('img');
+      img.className = 'sw-photo-img';
+      img.src = rec.photo;
+      img.alt = '写真';
+      img.addEventListener('click', function() { swViewPhoto(rec.photo); });
+      photoBox.appendChild(img);
+      var chBtn = document.createElement('button');
+      chBtn.type = 'button';
+      chBtn.className = 'sw-photo-btn';
+      chBtn.textContent = '写真を変更';
+      chBtn.addEventListener('click', function() { swPickPhoto(rec.id); });
+      photoBox.appendChild(chBtn);
+      var rmBtn = document.createElement('button');
+      rmBtn.type = 'button';
+      rmBtn.className = 'sw-photo-btn';
+      rmBtn.textContent = '写真を削除';
+      rmBtn.addEventListener('click', function() { swRemovePhoto(rec.id); });
+      photoBox.appendChild(rmBtn);
+    } else {
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'sw-photo-btn';
+      addBtn.textContent = '📷 写真を追加';
+      addBtn.addEventListener('click', function() { swPickPhoto(rec.id); });
+      photoBox.appendChild(addBtn);
+    }
+    body.appendChild(photoBox);
+    var delRow = document.createElement('div');
+    delRow.style.textAlign = 'right';
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'sw-history-del';
+    del.textContent = 'この記録を削除';
+    del.addEventListener('click', function() { swDeleteHistory(rec.id); });
+    delRow.appendChild(del);
+    body.appendChild(delRow);
+    card.appendChild(body);
     box.appendChild(card);
+  });
+}
+
+// ===== 場所（GPS） =====
+var swLocations = [];
+function swLoadLocations() {
+  try {
+    var l = JSON.parse(localStorage.getItem('signal_sw_locations') || '[]');
+    swLocations = Array.isArray(l) ? l : [];
+  } catch (e) { swLocations = []; }
+}
+function swPersistLocations() {
+  try { localStorage.setItem('signal_sw_locations', JSON.stringify(swLocations)); } catch (e) {}
+}
+function swLocById(id) {
+  for (var i = 0; i < swLocations.length; i++) {
+    if (swLocations[i].id === id) return swLocations[i];
+  }
+  return null;
+}
+function swLocName(rec) {
+  if (!rec.locationId) return '位置情報なし';
+  var loc = swLocById(rec.locationId);
+  return loc ? loc.name : '名称未設定';
+}
+function swDistanceM(lat1, lon1, lat2, lon2) {
+  var R = 6371000;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLon = (lon2 - lon1) * Math.PI / 180;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+function swFindOrCreateLocation(lat, lon) {
+  var best = null, bd = Infinity;
+  swLocations.forEach(function(l) {
+    var d = swDistanceM(lat, lon, l.lat, l.lon);
+    if (d < bd) { bd = d; best = l; }
+  });
+  // 100m以内なら同じ場所とみなす
+  if (best && bd <= 100) return best;
+  var loc = { id: 'loc' + Date.now() + Math.floor(Math.random() * 1000), lat: lat, lon: lon, name: '名称未設定' };
+  swLocations.push(loc);
+  swPersistLocations();
+  return loc;
+}
+function swAcquireLocation(rec) {
+  if (!navigator.geolocation) return;
+  try {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      var loc = swFindOrCreateLocation(pos.coords.latitude, pos.coords.longitude);
+      rec.locationId = loc.id;
+      swPersistHistory();
+      renderSwHistory();
+      renderSwLocations();
+    }, function() {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+  } catch (e) {}
+}
+function swRenameLocation(id, name) {
+  name = (name || '').replace(/^\s+|\s+$/g, '');
+  if (!name) return;
+  var loc = swLocById(id);
+  if (!loc) return;
+  loc.name = name;
+  swPersistLocations();
+  renderSwLocations();
+  renderSwHistory();
+}
+function renderSwLocations() {
+  var box = document.getElementById('swLocList');
+  if (!box) return;
+  box.innerHTML = '';
+  var groups = {};
+  swHistory.forEach(function(r) {
+    if (r.locationId) (groups[r.locationId] = groups[r.locationId] || []).push(r);
+  });
+  var ids = Object.keys(groups);
+  if (!ids.length) {
+    var empty = document.createElement('div');
+    empty.className = 'sw-history-empty';
+    empty.textContent = 'まだ場所の記録がありません（GPSが取れた記録から表示されます）。';
+    box.appendChild(empty);
+    return;
+  }
+  ids.forEach(function(id) {
+    var loc = swLocById(id);
+    if (!loc) return;
+    var recs = groups[id];
+    var best = Math.min.apply(null, recs.map(function(r) { return r.totalMs; }));
+    var row = document.createElement('div');
+    row.className = 'sw-loc-row';
+    var line = document.createElement('div');
+    line.className = 'sw-loc-line';
+    var nameWrap = document.createElement('span');
+    var nameEl = document.createElement('span');
+    nameEl.className = 'sw-loc-name';
+    nameEl.textContent = loc.name;
+    var meta = document.createElement('span');
+    meta.className = 'sw-loc-meta';
+    meta.textContent = '最速 ' + formatSwSeconds(best) + ' 秒 ・ ' + recs.length + '件';
+    nameWrap.appendChild(nameEl);
+    nameWrap.appendChild(meta);
+    line.appendChild(nameWrap);
+    var editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'sw-loc-edit-btn';
+    editBtn.textContent = '名前を変更';
+    line.appendChild(editBtn);
+    row.appendChild(line);
+    var editor = document.createElement('div');
+    editor.className = 'sw-loc-editor';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.value = loc.name === '名称未設定' ? '' : loc.name;
+    input.placeholder = '例：○○サーキット';
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.textContent = '保存';
+    saveBtn.addEventListener('click', function() { swRenameLocation(id, input.value); });
+    editBtn.addEventListener('click', function() { editor.classList.toggle('open'); });
+    editor.appendChild(input);
+    editor.appendChild(saveBtn);
+    row.appendChild(editor);
+    box.appendChild(row);
+  });
+}
+
+// ===== 写真 =====
+var swPhotoTargetId = null;
+function swPickPhoto(id) {
+  swPhotoTargetId = id;
+  var inp = document.getElementById('swPhotoInput');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+function swStorePhoto(id, dataUrl) {
+  for (var i = 0; i < swHistory.length; i++) {
+    if (swHistory[i].id === id) { swHistory[i].photo = dataUrl; break; }
+  }
+  if (!swPersistHistory()) {
+    alert('写真を保存できませんでした（端末の空き容量不足の可能性）');
+  }
+  renderSwHistory();
+}
+function swRemovePhoto(id) {
+  for (var i = 0; i < swHistory.length; i++) {
+    if (swHistory[i].id === id) { swHistory[i].photo = null; break; }
+  }
+  swPersistHistory();
+  renderSwHistory();
+}
+function swViewPhoto(url) {
+  var f = document.getElementById('swPhotoFull');
+  var img = document.getElementById('swPhotoFullImg');
+  if (f && img) { img.src = url; f.classList.add('active'); }
+}
+function swClosePhoto() {
+  var f = document.getElementById('swPhotoFull');
+  if (f) f.classList.remove('active');
+}
+function swOnPhotoFile(input) {
+  var file = input.files && input.files[0];
+  if (!file || !swPhotoTargetId) return;
+  var targetId = swPhotoTargetId;
+  var reader = new FileReader();
+  reader.onload = function() {
+    var img = new Image();
+    img.onload = function() {
+      var max = 1024;
+      var scale = Math.min(1, max / Math.max(img.width, img.height));
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale);
+      cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      swStorePhoto(targetId, cv.toDataURL('image/jpeg', 0.75));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== 画面の開閉 =====
+function swOpenHistory() {
+  renderSwLocations();
+  renderSwHistory();
+  var v = document.getElementById('swHistoryView');
+  if (v) v.classList.add('active');
+}
+function swOpenSettings() {
+  var v = document.getElementById('swSettingsView');
+  if (v) v.classList.add('active');
+}
+function swCloseViews() {
+  ['swHistoryView', 'swSettingsView'].forEach(function(id) {
+    var v = document.getElementById(id);
+    if (v) v.classList.remove('active');
   });
 }
 
