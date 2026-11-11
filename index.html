@@ -174,6 +174,19 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   font-variant-numeric: tabular-nums;
 }
 .stopwatch-lap-row.best { color: #34c759; font-weight: 600; }
+.sw-signal-fs-dots.cnt4 .sw-fs-dot { width: min(21vw, 46vh); height: min(21vw, 46vh); }
+.sw-history { margin: 16px 0 4px; }
+.sw-history-head { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.sw-history-empty { color: #8e8e93; font-size: 12px; padding: 4px 0 8px; }
+.sw-history-card { background: rgba(255,255,255,0.06); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.sw-history-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sw-history-date { color: #aeaeb2; font-size: 12px; }
+.sw-history-total { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sw-history-del { background: none; border: none; color: #ff6961; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; }
+.sw-history-lap { display: flex; justify-content: space-between; font-size: 12px; color: #d1d1d6; padding: 3px 0 0; font-variant-numeric: tabular-nums; }
+.sw-history-lap.best { color: #34c759; font-weight: 600; }
+.sw-history-memo { width: 100%; box-sizing: border-box; margin-top: 8px; border-radius: 8px; border: 1px solid #48484a; background: #2c2c2e; color: #f2f2f7; padding: 8px; font-size: 16px; }
+.sw-history-note { color: #8e8e93; font-size: 11px; line-height: 1.4; margin: 6px 0 10px; }
 
 
 </style>
@@ -183,22 +196,14 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   <div class="sw-signal-fs" id="swSignalFs" role="dialog" aria-label="スタート合図">
     <button type="button" class="sw-signal-fs-cancel" id="swSignalFsCancel">キャンセル</button>
     <div class="sw-signal-fs-hint" id="swSignalFsHint">画面をタップしてカウント開始</div>
-    <div class="sw-signal-fs-dots">
-      <div class="sw-fs-dot" id="swFsDot1"></div>
-      <div class="sw-fs-dot" id="swFsDot2"></div>
-      <div class="sw-fs-dot" id="swFsDot3"></div>
-    </div>
+    <div class="sw-signal-fs-dots" id="swSignalFsDots"></div>
   </div>
 
   <!-- タイム計測（ストップウォッチ） -->
   <div class="stopwatch-overlay" id="stopwatchOverlay">
     <div class="stopwatch-panel">
       <div style="font-size:16px;font-weight:700;">⏱️ タイム計測</div>
-      <div class="sw-signal-dots" id="swSignalDots" aria-hidden="true">
-        <div class="sw-dot" id="swDot1"></div>
-        <div class="sw-dot" id="swDot2"></div>
-        <div class="sw-dot" id="swDot3"></div>
-      </div>
+      <div class="sw-signal-dots" id="swSignalDots" aria-hidden="true"></div>
       <div class="stopwatch-display" id="swDisplay">0.000</div>
       <div class="stopwatch-sub" id="swSub">停止中</div>      <div class="stopwatch-btns">
         <button type="button" class="sw-start" id="swStartBtn" onclick="swStart()">スタート</button>
@@ -209,6 +214,11 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
         <button type="button" class="sw-reset" onclick="swReset()">リセット</button>
       </div>
       <div class="stopwatch-laps" id="swLaps"></div>
+      <div class="sw-history">
+        <div class="sw-history-head">📋 履歴（自動保存）</div>
+        <div id="swHistoryList"></div>
+        <p class="sw-history-note">ストップすると、その回のタイムとラップが自動で保存されます。保存先はこの端末のブラウザ内です（保存数・文字数は端末の容量しだい）。</p>
+      </div>
       <details class="sw-signal-settings" id="swSignalSettings">
         <summary>⚙️ スタート合図の設定</summary>
         <label>基本モード
@@ -225,8 +235,15 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
         </div>
         <label>点灯パターン
           <select id="swSignalPattern" onchange="swSaveSignalSettings()">
-            <option value="countdown" selected>カウントダウン（1→2→3→青）</option>
-            <option value="allred">一斉切替（最初から赤3つ → 青3つ）</option>
+            <option value="countdown" selected>カウントダウン（1つずつ増えて → 青）</option>
+            <option value="allred">一斉切替（最初から全て赤 → 全て青）</option>
+          </select>
+        </label>
+        <label>シグナルの丸の数
+          <select id="swSignalCount" onchange="swSignalCountChanged()">
+            <option value="2">2つ</option>
+            <option value="3" selected>3つ</option>
+            <option value="4">4つ</option>
           </select>
         </label>
         <label>切替・開始タイミング
@@ -237,8 +254,8 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
           </select>
         </label>
         <p style="margin:4px 0 8px;color:#8e8e93;font-size:11px;line-height:1.4;">
-          カウントダウン：赤が1→2→3と増え、その後青点灯。<br>
-          一斉切替：スタート／タッチ前から赤3つ点灯。操作すると設定秒数のあと青3つに切り替わるだけ（カウントダウンなし）。
+          カウントダウン：赤が1つずつ増え、その後青点灯。<br>
+          一斉切替：スタート／タッチ前から全て赤点灯。操作すると設定秒数のあと全て青に切り替わるだけ（カウントダウンなし）。
         </p>
         <label>カスタム音（任意・端末内の音声ファイル）
           <input type="file" id="swSignalFile" accept="audio/*" onchange="swLoadCustomSound(this)" />
@@ -293,7 +310,11 @@ function swLoadSignalSettings() {
     var vib = document.getElementById('swSignalVibrate');
     var flash = document.getElementById('swSignalFlash');
     var timing = document.getElementById('swSignalTiming');
+    var pattern = document.getElementById('swSignalPattern');
+    var count = document.getElementById('swSignalCount');
     if (mode && s.mode) mode.value = s.mode;
+    if (pattern && s.pattern) pattern.value = s.pattern;
+    if (count && s.count) count.value = String(s.count);
     if (beep && typeof s.beep === 'boolean') beep.checked = s.beep;
     if (vib && typeof s.vibrate === 'boolean') vib.checked = s.vibrate;
     if (flash && typeof s.flash === 'boolean') flash.checked = s.flash;
@@ -307,7 +328,9 @@ function swSaveSignalSettings() {
       beep: !!(document.getElementById('swSignalBeep') || {}).checked,
       vibrate: !!(document.getElementById('swSignalVibrate') || {}).checked,
       flash: !!(document.getElementById('swSignalFlash') || {}).checked,
-      timing: (document.getElementById('swSignalTiming') || {}).value || 'normal'
+      timing: (document.getElementById('swSignalTiming') || {}).value || 'normal',
+      pattern: (document.getElementById('swSignalPattern') || {}).value || 'countdown',
+      count: parseInt((document.getElementById('swSignalCount') || {}).value || '3', 10) || 3
     }));
   } catch (e) {}
 }
@@ -315,20 +338,55 @@ function swClearSignalTimers() {
   swSignalTimers.forEach(function(t) { clearTimeout(t); });
   swSignalTimers = [];
 }
+function getSwSignalCount() {
+  var v = parseInt((document.getElementById('swSignalCount') || {}).value || '3', 10);
+  if (v !== 2 && v !== 3 && v !== 4) v = 3;
+  return v;
+}
+function buildSwDots() {
+  var n = getSwSignalCount();
+  var panel = document.getElementById('swSignalDots');
+  if (panel) {
+    panel.innerHTML = '';
+    for (var i = 1; i <= n; i++) {
+      var d1 = document.createElement('div');
+      d1.className = 'sw-dot';
+      d1.id = 'swDot' + i;
+      panel.appendChild(d1);
+    }
+  }
+  var fsBox = document.getElementById('swSignalFsDots');
+  if (fsBox) {
+    fsBox.innerHTML = '';
+    fsBox.className = 'sw-signal-fs-dots' + (n === 4 ? ' cnt4' : '');
+    for (var j = 1; j <= n; j++) {
+      var d2 = document.createElement('div');
+      d2.className = 'sw-fs-dot';
+      d2.id = 'swFsDot' + j;
+      fsBox.appendChild(d2);
+    }
+  }
+}
+function swSignalCountChanged() {
+  swSaveSignalSettings();
+  if (swSignalBusy) swCancelSignal();
+  buildSwDots();
+}
 function swResetDots() {
-  ['swDot1', 'swDot2', 'swDot3'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.classList.remove('red', 'blue');
-  });
+  var box = document.getElementById('swSignalDots');
+  if (!box) return;
+  for (var i = 0; i < box.children.length; i++) {
+    box.children[i].classList.remove('red', 'blue');
+  }
 }
 function swSetDotState(nRed, allBlue) {
-  for (var i = 1; i <= 3; i++) {
-    var el = document.getElementById('swDot' + i);
-    if (!el) continue;
+  var box = document.getElementById('swSignalDots');
+  if (!box) return;
+  for (var i = 0; i < box.children.length; i++) {
+    var el = box.children[i];
     el.classList.remove('red', 'blue');
     if (allBlue) el.classList.add('blue');
-    else if (i <= nRed) el.classList.add('red');
+    else if (i < nRed) el.classList.add('red');
   }
 }
 function swEnsureAudio() {
@@ -473,19 +531,20 @@ function swCancelSignal() {
   }
 }
 function swFsResetDots() {
-  ['swFsDot1', 'swFsDot2', 'swFsDot3'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.classList.remove('red', 'blue');
-  });
+  var box = document.getElementById('swSignalFsDots');
+  if (!box) return;
+  for (var i = 0; i < box.children.length; i++) {
+    box.children[i].classList.remove('red', 'blue');
+  }
 }
 function swFsSetDotState(nRed, allBlue) {
-  for (var di = 1; di <= 3; di++) {
-    var el = document.getElementById('swFsDot' + di);
-    if (!el) continue;
+  var box = document.getElementById('swSignalFsDots');
+  if (!box) return;
+  for (var i = 0; i < box.children.length; i++) {
+    var el = box.children[i];
     el.classList.remove('red', 'blue');
     if (allBlue) el.classList.add('blue');
-    else if (di <= nRed) el.classList.add('red');
+    else if (i < nRed) el.classList.add('red');
   }
 }
 function swTryLockLandscape() {
@@ -554,13 +613,14 @@ function swRunSignalSequence(kind) {
 
   var timing = (document.getElementById('swSignalTiming') || {}).value || 'normal';
   var pattern = (document.getElementById('swSignalPattern') || {}).value || 'countdown';
+  var sigCount = getSwSignalCount();
   var GO_RANDOM_MS = [400, 1000, 1800, 2500];
-  // 一斉切替: パネル上でも操作前から赤3つ（リセット直後に再点灯）
+  // 一斉切替: パネル上でも操作前から全て赤（リセット直後に再点灯）
   if (pattern === 'allred' && !useFullscreen) {
-    setDots(3, false);
+    setDots(sigCount, false);
     if (sub) sub.textContent = '赤待機…（スタートで青へ）';
   }
-  // 切替時間（カウントダウン: 3つ目の赤→青 / 一斉切替: 赤3つ表示→青3つ）
+  // 切替時間（カウントダウン: 最後の赤→青 / 一斉切替: 全て赤表示→全て青）
   var switchMs = 1000;
   if (timing === 'delay5') switchMs = 5000;
   else if (timing === 'random') switchMs = GO_RANDOM_MS[Math.floor(Math.random() * GO_RANDOM_MS.length)];
@@ -582,7 +642,7 @@ function swRunSignalSequence(kind) {
   }
 
   function fireGo() {
-    setDots(3, true);
+    setDots(sigCount, true);
     swPlaySignalSound('go');
     swVibratePattern('go');
     swFlashPanel();
@@ -596,7 +656,7 @@ function swRunSignalSequence(kind) {
         finishBusy();
         countdownStarted = false;
 if (pattern === 'allred') {
-          setDots(3, false); // 次タッチ前から赤3つ
+          setDots(sigCount, false); // 次タッチ前から全て赤
           if (sub) sub.textContent = 'シグナルのみ（赤待機）';
           if (hint) hint.textContent = '画面をタップすると青に切り替わります';
         } else {
@@ -634,7 +694,7 @@ if (pattern === 'allred') {
   }
 
   function runAllRedSwitch() {
-    // 赤3つはタッチ／スタート前から点灯済み。操作後は切替秒数だけ待って青へ
+    // 赤はタッチ／スタート前から点灯済み。操作後は切替秒数だけ待って青へ
     if (countdownStarted) return;
     countdownStarted = true;
     var fs = document.getElementById('swSignalFs');
@@ -646,7 +706,7 @@ if (pattern === 'allred') {
         ? ('切替中…（約' + (switchMs / 1000) + '秒で青）')
         : '切替中…';
     }
-    setDots(3, false); // 赤維持
+    setDots(sigCount, false); // 赤維持
     try { swVibratePattern('arm'); } catch (e) {}
     swSignalTimers.push(setTimeout(fireGo, switchMs));
   }
@@ -664,27 +724,24 @@ if (pattern === 'allred') {
     var hint = document.getElementById('swSignalFsHint');
     if (useFullscreen && hint) hint.textContent = '合図中…';
 
-    setDots(1, false);
-    swPlaySignalSound('tick');
-    swVibratePattern('tick');
-    swSignalTimers.push(setTimeout(function() {
-      setDots(2, false);
-      swPlaySignalSound('tick');
-      swVibratePattern('tick');
-    }, 1000));
-    swSignalTimers.push(setTimeout(function() {
-      setDots(3, false);
-      swPlaySignalSound('tick');
-      swVibratePattern('tick');
-      if (delayAfterThird > 500) {
-        if (sub) sub.textContent = 'まもなく…';
-        if (useFullscreen && hint) hint.textContent = 'まもなく…';
-      }
-    }, 2000));
-    // 通常のカウントダウンは 3つ目の赤(2秒) + 切替時間
+    // カウントダウン: 丸の数だけ、1秒ごとに赤を1つずつ増やす
+    for (var ci = 1; ci <= sigCount; ci++) {
+      (function(n) {
+        swSignalTimers.push(setTimeout(function() {
+          setDots(n, false);
+          swPlaySignalSound('tick');
+          swVibratePattern('tick');
+          if (n === sigCount && delayAfterThird > 500) {
+            if (sub) sub.textContent = 'まもなく…';
+            if (useFullscreen && hint) hint.textContent = 'まもなく…';
+          }
+        }, (n - 1) * 1000));
+      })(ci);
+    }
+    // 通常のカウントダウンは 最後の赤 + 切替時間
     // delay5 は preDelay で開始前に待つため、ここでは switchMs を通常相当に
     var afterThird = (timing === 'delay5') ? 1000 : delayAfterThird;
-    swSignalTimers.push(setTimeout(fireGo, 2000 + afterThird));
+    swSignalTimers.push(setTimeout(fireGo, (sigCount - 1) * 1000 + afterThird));
   }
 
   function beginAfterArm() {
@@ -712,7 +769,7 @@ if (pattern === 'allred') {
     var fs = document.getElementById('swSignalFs');
     var hint = document.getElementById('swSignalFsHint');
     if (pattern === 'allred') {
-      setDots(3, false); // タッチ前から赤3つ点灯
+      setDots(sigCount, false); // タッチ前から赤3つ点灯
       if (sub) sub.textContent = 'シグナルのみ（赤待機）';
       if (hint) hint.textContent = '画面をタップすると青に切り替わります';
     } else {
@@ -758,6 +815,7 @@ var swAccum = 0;
 var swRaf = null;
 var swLaps = [];
 var swLastMs = 0;
+var swRunId = null;
 
 function formatSwTime(ms) {
   ms = Math.max(0, ms);
@@ -785,12 +843,16 @@ function swTick() {
 
 function openStopwatch() {
   swLoadSignalSettings();
+  buildSwDots();
+  swLoadHistory();
   document.getElementById('stopwatchOverlay').classList.add('active');
   renderSwLaps();
+  renderSwHistory();
 }
 
 function swStart() {
   if (swRunning) return;
+  if (!swRunId && swAccum === 0 && swLaps.length === 0) swRunId = Date.now();
   swRunning = true;
   swStartTs = performance.now();
   document.getElementById('swStartBtn').style.display = 'none';
@@ -811,6 +873,7 @@ function swStop() {
   document.getElementById('swStopBtn').style.display = 'none';
   document.getElementById('swLapBtn').disabled = true;
   document.getElementById('swSub').textContent = '停止 · ' + formatSwSeconds(swLastMs) + ' 秒';
+  swAutoSaveHistory();
 }
 
 function swLap() {
@@ -832,6 +895,7 @@ function swReset() {
   swAccum = 0;
   swLastMs = 0;
   swLaps = [];
+  swRunId = null;
   document.getElementById('swDisplay').textContent = '0.000';
   document.getElementById('swSub').textContent = '停止中';
   document.getElementById('swStartBtn').style.display = '';
@@ -863,6 +927,124 @@ function renderSwLaps() {
   try { box.scrollTop = 0; } catch (e) {}
 }
 
+
+
+// ===== 履歴（ストップで自動保存） =====
+var swHistory = [];
+function swLoadHistory() {
+  try {
+    var h = JSON.parse(localStorage.getItem('signal_sw_history') || '[]');
+    swHistory = Array.isArray(h) ? h : [];
+  } catch (e) { swHistory = []; }
+}
+function swPersistHistory() {
+  try {
+    localStorage.setItem('signal_sw_history', JSON.stringify(swHistory));
+    return true;
+  } catch (e) { return false; }
+}
+function swFmtDateTime(ts) {
+  var d = new Date(ts);
+  var hh = String(d.getHours()); if (hh.length < 2) hh = '0' + hh;
+  var mm = String(d.getMinutes()); if (mm.length < 2) mm = '0' + mm;
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
+}
+function swAutoSaveHistory() {
+  if (!swRunId || swLastMs <= 0) return;
+  var rec = {
+    id: swRunId,
+    ts: Date.now(),
+    totalMs: swLastMs,
+    laps: swLaps.map(function(l) { return { split: l.split, total: l.total }; }),
+    memo: ''
+  };
+  var idx = -1;
+  for (var i = 0; i < swHistory.length; i++) {
+    if (swHistory[i].id === swRunId) { idx = i; break; }
+  }
+  if (idx >= 0) {
+    rec.memo = swHistory[idx].memo || '';
+    swHistory[idx] = rec;
+  } else {
+    swHistory.unshift(rec);
+  }
+  if (!swPersistHistory()) {
+    var sub = document.getElementById('swSub');
+    if (sub) sub.textContent = '履歴を保存できませんでした（端末の空き容量不足の可能性）';
+  }
+  renderSwHistory();
+}
+function swDeleteHistory(id) {
+  if (!confirm('この履歴を削除しますか？')) return;
+  swHistory = swHistory.filter(function(r) { return r.id !== id; });
+  swPersistHistory();
+  renderSwHistory();
+}
+function swSetHistoryMemo(id, text) {
+  for (var i = 0; i < swHistory.length; i++) {
+    if (swHistory[i].id === id) { swHistory[i].memo = text; break; }
+  }
+  swPersistHistory();
+}
+function renderSwHistory() {
+  var box = document.getElementById('swHistoryList');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!swHistory.length) {
+    var empty = document.createElement('div');
+    empty.className = 'sw-history-empty';
+    empty.textContent = 'まだ履歴がありません。計測してストップすると自動で保存されます。';
+    box.appendChild(empty);
+    return;
+  }
+  swHistory.forEach(function(rec) {
+    var card = document.createElement('div');
+    card.className = 'sw-history-card';
+    var top = document.createElement('div');
+    top.className = 'sw-history-top';
+    var dateEl = document.createElement('span');
+    dateEl.className = 'sw-history-date';
+    dateEl.textContent = swFmtDateTime(rec.ts);
+    var totalEl = document.createElement('span');
+    totalEl.className = 'sw-history-total';
+    totalEl.textContent = formatSwSeconds(rec.totalMs) + ' 秒';
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'sw-history-del';
+    del.textContent = '削除';
+    del.addEventListener('click', function() { swDeleteHistory(rec.id); });
+    var left = document.createElement('span');
+    left.appendChild(dateEl);
+    left.appendChild(document.createTextNode('　'));
+    left.appendChild(totalEl);
+    top.appendChild(left);
+    top.appendChild(del);
+    card.appendChild(top);
+    if (rec.laps && rec.laps.length) {
+      var bestSplit = Math.min.apply(null, rec.laps.map(function(l) { return l.split; }));
+      rec.laps.forEach(function(l, i) {
+        var row = document.createElement('div');
+        var isBest = l.split === bestSplit && rec.laps.length > 1;
+        row.className = 'sw-history-lap' + (isBest ? ' best' : '');
+        var a = document.createElement('span');
+        a.textContent = 'ラップ ' + (i + 1) + (isBest ? ' ★' : '');
+        var b = document.createElement('span');
+        b.textContent = formatSwSeconds(l.split) + ' / 通算 ' + formatSwSeconds(l.total);
+        row.appendChild(a);
+        row.appendChild(b);
+        card.appendChild(row);
+      });
+    }
+    var memo = document.createElement('input');
+    memo.type = 'text';
+    memo.className = 'sw-history-memo';
+    memo.placeholder = 'メモ（例：コースアウト、ブレーキ甘め）';
+    memo.value = rec.memo || '';
+    memo.addEventListener('input', function() { swSetHistoryMemo(rec.id, memo.value); });
+    card.appendChild(memo);
+    box.appendChild(card);
+  });
+}
 
 // standalone boot
 document.addEventListener('DOMContentLoaded', function() {
