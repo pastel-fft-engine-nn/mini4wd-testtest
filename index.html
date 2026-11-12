@@ -298,7 +298,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
       <div class="stopwatch-laps" id="swLaps"></div>
 
       <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:10px;">単位は秒です。ベストラップも自動で更新します。</p>
-      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v19</p>
+      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v20</p>
     </div>
   </div>
 
@@ -440,10 +440,10 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   </div>
 
   <!-- 変更内容ポップアップ（版が上がったときだけ表示） -->
-  <div class="sw-changelog-popup" id="swChangelogPopup">
+  <div class="sw-changelog-popup active" id="swChangelogPopup">
     <div class="sw-changelog-card">
-      <div class="sw-changelog-title" id="swChangelogPopupTitle">変更内容</div>
-      <ul class="sw-changelog-list" id="swChangelogPopupList"></ul>
+      <div class="sw-changelog-title" id="swChangelogPopupTitle">🎉 v20 の変更内容（2026-11-12）</div>
+      <ul class="sw-changelog-list" id="swChangelogPopupList"><li>履歴の保存を読み戻して確認するようにし、失敗したときは「保存できませんでした」と赤字で出るようにした（今までは失敗しても分からなかった）</li><li>別のタブで開いたままの古い画面が、新しく保存した内容を上書きして消してしまうのを防いだ</li></ul>
       <p class="sw-changelog-note">今までの変更分は、設定の「変更履歴を見る」からいつでも確認できます。</p>
       <button type="button" class="sw-changelog-close" onclick="swCloseChangelogPopup()">閉じる</button>
     </div>
@@ -1174,6 +1174,7 @@ function renderSwLaps() {
 
 // ===== 履歴（ストップで自動保存） =====
 var swHistory = [];
+var swHistorySnapshot = null;
 function swLoadHistory() {
   try {
     var h = JSON.parse(localStorage.getItem('signal_sw_history') || '[]');
@@ -1184,6 +1185,7 @@ function swLoadHistory() {
     if (!Array.isArray(rec.photos)) rec.photos = rec.photo ? [rec.photo] : [];
     if ('photo' in rec) delete rec.photo;
   });
+  try { swHistorySnapshot = localStorage.getItem('signal_sw_history'); } catch (eS) { swHistorySnapshot = null; }
 }
 function swHarvestHistoryDom() {
   // 端末によってはプルダウンの選択イベントが届かないことがあるため、
@@ -1208,9 +1210,43 @@ function swHarvestHistoryDom() {
 }
 function swPersistHistory() {
   try { swHarvestHistoryDom(); } catch (eH) {}
+  // 別のタブが先に保存していたら、その内容を空で潰さないよう取り込んでから書く
   try {
-    localStorage.setItem('signal_sw_history', JSON.stringify(swHistory));
-    return true;
+    var raw = localStorage.getItem('signal_sw_history');
+    if (raw && swHistorySnapshot !== null && raw !== swHistorySnapshot) {
+      try {
+        var stored = JSON.parse(raw);
+        if (Array.isArray(stored)) {
+          var byId = {};
+          stored.forEach(function(r) { byId[String(r.id)] = r; });
+          swHistory.forEach(function(rec) {
+            var st = byId[String(rec.id)];
+            if (!st) return;
+            var mine = swSpecOf(rec);
+            var theirs = st.spec || {};
+            ['motor', 'chassis', 'voltage', 'tire', 'gear'].forEach(function(k) {
+              if (!mine[k] && theirs[k]) mine[k] = theirs[k];
+            });
+            if (!rec.memo && st.memo) rec.memo = st.memo;
+          });
+          stored.forEach(function(r) {
+            var found = false;
+            for (var i = 0; i < swHistory.length; i++) {
+              if (String(swHistory[i].id) === String(r.id)) { found = true; break; }
+            }
+            if (!found) swHistory.push(r);
+          });
+        }
+      } catch (eM) {}
+    }
+  } catch (eR) {}
+  try {
+    var out = JSON.stringify(swHistory);
+    localStorage.setItem('signal_sw_history', out);
+    swHistorySnapshot = out;
+    var back = null;
+    try { back = localStorage.getItem('signal_sw_history'); } catch (eB) {}
+    return back === out;
   } catch (e) { return false; }
 }
 function swFmtDateTime(ts) {
@@ -1273,7 +1309,7 @@ function swSetHistoryMemo(id, text) {
   for (var i = 0; i < swHistory.length; i++) {
     if (swHistory[i].id === id) { swHistory[i].memo = text; break; }
   }
-  swPersistHistory();
+  return swPersistHistory();
 }
 
 // ===== 記録の項目（モーター/シャーシ/電圧/タイヤ径/ギヤ比） =====
@@ -1287,17 +1323,23 @@ function swSpecOf(rec) {
   if (!rec.spec) rec.spec = { motor: '', chassis: '', voltage: '', tire: '', gear: '' };
   return rec.spec;
 }
-function swFlashSaved(msgEl) {
+function swFlashSaved(msgEl, ok) {
   if (!msgEl) return;
-  msgEl.textContent = '✓ 保存しました';
   if (msgEl._swT) clearTimeout(msgEl._swT);
+  if (ok === false) {
+    msgEl.textContent = '保存できませんでした（容量不足などの可能性）';
+    msgEl.style.color = '#ff6961';
+    return;
+  }
+  msgEl.textContent = '✓ 保存しました';
+  msgEl.style.color = '#30d158';
   msgEl._swT = setTimeout(function() { msgEl.textContent = ''; }, 2000);
 }
 function swSetHistorySpec(id, kind, value) {
   for (var i = 0; i < swHistory.length; i++) {
     if (swHistory[i].id === id) { swSpecOf(swHistory[i])[kind] = value; break; }
   }
-  swPersistHistory();
+  return swPersistHistory();
 }
 function swBuildSpecSelect(kind, value) {
   var lists = { motor: SW_MOTORS, chassis: SW_CHASSIS, gear: SW_GEARS, voltage: SW_VOLTAGES, tire: SW_TIRES };
@@ -1527,23 +1569,23 @@ function renderSwHistory() {
     var grid = document.createElement('div');
     grid.className = 'sw-spec-grid';
     var motorSel = swBuildSpecSelect('motor', spec.motor);
-    motorSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'motor', motorSel.value); swFlashSaved(saveMsg); });
+    motorSel.addEventListener('change', function() { swFlashSaved(saveMsg, swSetHistorySpec(rec.id, 'motor', motorSel.value)); });
     motorSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'motor', motorSel.value); });
     grid.appendChild(motorSel);
     var chassisSel = swBuildSpecSelect('chassis', spec.chassis);
-    chassisSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'chassis', chassisSel.value); swFlashSaved(saveMsg); });
+    chassisSel.addEventListener('change', function() { swFlashSaved(saveMsg, swSetHistorySpec(rec.id, 'chassis', chassisSel.value)); });
     chassisSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'chassis', chassisSel.value); });
     grid.appendChild(chassisSel);
     var voltSel = swBuildSpecSelect('voltage', spec.voltage);
-    voltSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'voltage', voltSel.value); swFlashSaved(saveMsg); });
+    voltSel.addEventListener('change', function() { swFlashSaved(saveMsg, swSetHistorySpec(rec.id, 'voltage', voltSel.value)); });
     voltSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'voltage', voltSel.value); });
     grid.appendChild(voltSel);
     var tireSel = swBuildSpecSelect('tire', spec.tire);
-    tireSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'tire', tireSel.value); swFlashSaved(saveMsg); });
+    tireSel.addEventListener('change', function() { swFlashSaved(saveMsg, swSetHistorySpec(rec.id, 'tire', tireSel.value)); });
     tireSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'tire', tireSel.value); });
     grid.appendChild(tireSel);
     var gearSel = swBuildSpecSelect('gear', spec.gear);
-    gearSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'gear', gearSel.value); swFlashSaved(saveMsg); });
+    gearSel.addEventListener('change', function() { swFlashSaved(saveMsg, swSetHistorySpec(rec.id, 'gear', gearSel.value)); });
     gearSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'gear', gearSel.value); });
     grid.appendChild(gearSel);
     body.appendChild(grid);
@@ -1552,7 +1594,7 @@ function renderSwHistory() {
     memo.className = 'sw-history-memo';
     memo.placeholder = 'メモ（例：コースアウト、ブレーキ甘め）';
     memo.value = rec.memo || '';
-    memo.addEventListener('input', function() { swSetHistoryMemo(rec.id, memo.value); swFlashSaved(saveMsg); });
+    memo.addEventListener('input', function() { swFlashSaved(saveMsg, swSetHistoryMemo(rec.id, memo.value)); });
     body.appendChild(memo);
     var saveRow = document.createElement('div');
     saveRow.className = 'sw-spec-save-row';
@@ -1560,7 +1602,7 @@ function renderSwHistory() {
     saveBtn.type = 'button';
     saveBtn.className = 'sw-spec-save-btn';
     saveBtn.textContent = 'この記録を保存';
-    saveBtn.addEventListener('click', function() { swPersistHistory(); swFlashSaved(saveMsg); });
+    saveBtn.addEventListener('click', function() { swFlashSaved(saveMsg, swPersistHistory()); });
     saveRow.appendChild(saveBtn);
     saveRow.appendChild(saveMsg);
     body.appendChild(saveRow);
@@ -2101,8 +2143,9 @@ function swCloseReaction() {
 }
 
 // ===== バージョンと変更履歴 =====
-var SW_VERSION = 'v19';
+var SW_VERSION = 'v20';
 var SW_CHANGELOG = [
+  { version: 'v20', date: '2026-11-12', items: ['履歴の保存を読み戻して確認するようにし、失敗したときは「保存できませんでした」と赤字で出るようにした（今までは失敗しても分からなかった）', '別のタブで開いたままの古い画面が、新しく保存した内容を上書きして消してしまうのを防いだ'] },
   { version: 'v19', date: '2026-11-12', items: ['履歴の項目（モーター・タイヤ径など）が更新すると未選択に戻る問題への対策：保存の直前に、画面に表示されている選択内容をそのまま取り込んでから保存するようにした'] },
   { version: 'v18', date: '2026-11-12', items: ['履歴の項目（モーター・タイヤ径など）の保存を強化：選んだ瞬間の自動保存に加え、各記録に「この記録を保存」ボタンと「✓ 保存しました」の表示を追加', '画面を閉じる・切り替えるタイミングでも履歴を保存し直すようにした'] },
   { version: 'v17', date: '2026-11-12', items: ['赤が増える間隔を1秒から1.2秒に少しゆっくりにした', '反応時間チャレンジのボタンを、オレンジ枠＋黒ボタンに変えた'] },
@@ -2195,6 +2238,12 @@ function swToggleGps() {
 
 window.addEventListener('pagehide', function() { try { swPersistHistory(); } catch (e) {} });
 document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') { try { swPersistHistory(); } catch (e) {} } });
+window.addEventListener('storage', function(e) {
+  if (!e || e.key !== 'signal_sw_history') return;
+  swLoadHistory();
+  try { renderSwHistory(); } catch (e2) {}
+  try { renderSwLocations(); } catch (e3) {}
+});
 
 // standalone boot
 document.addEventListener('DOMContentLoaded', function() {
