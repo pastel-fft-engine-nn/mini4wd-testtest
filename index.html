@@ -29,7 +29,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   width: 100%; max-width: 480px; height: 100%;
   background: #1c1c1e; color: #fff;
   overflow-y: auto; box-sizing: border-box;
-  padding: 20vh 18px max(28px, env(safe-area-inset-bottom));
+  padding: 6vh 18px max(28px, env(safe-area-inset-bottom));
 }
 .stopwatch-display {
   font-size: 48px; font-weight: 700; text-align: center;
@@ -164,7 +164,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-lap { background: #3a3a3c; color: #fff; }
 .sw-reset { background: #48484a; color: #fff; }
 .stopwatch-laps {
-  margin: 12px 0; max-height: 160px; overflow-y: auto;
+  margin: 12px 0; max-height: 195px; overflow-y: auto;
 }
 .stopwatch-lap-row {
   display: flex; justify-content: space-between; padding: 8px 4px;
@@ -218,6 +218,14 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-photo-full { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
 .sw-photo-full.active { display: flex; }
 .sw-photo-full img { max-width: 100%; max-height: 100%; }
+.sw-gps-toggle { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.sw-changelog-btn { width: 100%; background: #3a3a3c; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 16px; box-sizing: border-box; }
+.sw-changelog-list { margin: 6px 0 10px; padding-left: 20px; color: #d1d1d6; font-size: 13px; line-height: 1.6; }
+.sw-changelog-popup { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 18px; box-sizing: border-box; }
+.sw-changelog-popup.active { display: flex; }
+.sw-changelog-card { background: #1c1c1e; color: #fff; border-radius: 12px; padding: 20px 18px; width: 100%; max-width: 440px; max-height: 82vh; overflow-y: auto; box-sizing: border-box; }
+.sw-changelog-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.sw-changelog-close { width: 100%; background: #6BAFD6; color: #fff; border: none; border-radius: 8px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
 @media (orientation: portrait) {
   .sw-dot { width: min(25.2vw, 101px); height: min(25.2vw, 101px); }
   #swSignalDots.cnt4 .sw-dot { width: min(20vw, 80px); height: min(20vw, 80px); }
@@ -261,6 +269,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
       <div class="stopwatch-laps" id="swLaps"></div>
 
       <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:10px;">単位は秒です。ベストラップも自動で更新します。</p>
+      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v11</p>
     </div>
   </div>
 
@@ -302,13 +311,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
         <button type="button" class="sw-view-back" onclick="swCloseViews()">← 戻る</button>
         <div class="sw-view-title">設定</div>
       </div>
-      <div class="sw-gps-box">
-        <div class="sw-loc-head">📍 位置情報（GPS）</div>
-        <p class="sw-gps-text" id="swGpsStatus">状態：未確認です。下のボタンで取得を試すと、この端末での可否が分かります。</p>
-        <button type="button" class="sw-photo-btn" onclick="swTestGps()">GPS取得を試す</button>
-        <p class="sw-gps-text">許可ポップアップは https で開いたときだけ出ます。ファイルを直接開いている場合（file://）や一部のアプリ内ブラウザでは、ブラウザの仕様でポップアップ自体が出ず取得できません。その場合は GitHub Pages など https のURLで開いてください。一度「拒否」を選んだ場合もポップアップは再表示されないので、ブラウザの設定から許可に変えてください。</p>
-      </div>
-      <div class="sw-signal-settings" id="swSignalSettings">
+<div class="sw-signal-settings" id="swSignalSettings">
         <label>基本モード
           <select id="swSignalMode" onchange="swSaveSignalSettings()">
             <option value="off">合図なし（即スタート）</option>
@@ -359,12 +362,43 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
           振動は Android 等の対応ブラウザのみ動作します。iPhone の Safari は仕様上バイブ非対応です。自動リピート間隔を選ぶと、合図の開始からその間隔（1〜30分）ごとに合図が繰り返されます（合図＋計測ではタイマーも自動でリセットされて次が始まります）。繰り返しを止めるにはリセット、シグナルのみではキャンセルを押してください。
         </p>
       </div>
+
+      <button type="button" class="sw-changelog-btn" onclick="swOpenChangelog()">📋 変更履歴を見る</button>
+      <div class="sw-gps-box">
+        <div class="sw-loc-head sw-gps-toggle" onclick="swToggleGps()">📍 位置情報（GPS） <span id="swGpsChev">▼</span></div>
+        <div class="sw-gps-body" id="swGpsBody" style="display:none;">
+        <p class="sw-gps-text" id="swGpsStatus">状態：未確認です。下のボタンで取得を試すと、この端末での可否が分かります。</p>
+        <button type="button" class="sw-photo-btn" onclick="swTestGps()">GPS取得を試す</button>
+        <p class="sw-gps-text">許可ポップアップは https で開いたときだけ出ます。ファイルを直接開いている場合（file://）や一部のアプリ内ブラウザでは、ブラウザの仕様でポップアップ自体が出ず取得できません。その場合は GitHub Pages など https のURLで開いてください。一度「拒否」を選んだ場合もポップアップは再表示されないので、ブラウザの設定から許可に変えてください。</p>
+      
+        </div>
+      </div>
     </div>
   </div>
 
   <input type="file" id="swPhotoInput" accept="image/*" multiple="" onchange="swOnPhotoFile(this)" style="display:none;">
   <div class="sw-photo-full" id="swPhotoFull" onclick="swClosePhoto()">
     <img id="swPhotoFullImg" alt="写真">
+  </div>
+
+  <!-- 変更履歴画面 -->
+  <div class="sw-view" id="swChangelogView">
+    <div class="sw-view-inner">
+      <div class="sw-view-head">
+        <button type="button" class="sw-view-back" onclick="swCloseViews()">← 戻る</button>
+        <div class="sw-view-title">変更履歴</div>
+      </div>
+      <div id="swChangelogList"></div>
+    </div>
+  </div>
+
+  <!-- 変更内容ポップアップ（版が上がったときだけ表示） -->
+  <div class="sw-changelog-popup active" id="swChangelogPopup">
+    <div class="sw-changelog-card">
+      <div class="sw-changelog-title" id="swChangelogPopupTitle">🎉 v11 の変更内容（2026-11-12）</div>
+      <ul class="sw-changelog-list" id="swChangelogPopupList"><li>画面の並びを整理：シグナル → タイム → ボタン → ラップ（履歴と設定は専用画面に）</li><li>ストップすると履歴を自動保存（月/日 時：分、ラップも一緒に）</li><li>記録にメモ、写真（何枚でも）、モーター／シャーシ／電圧／タイヤ径／ギヤ比の欄を追加</li><li>保存時にGPSで場所を記録。場所ごとの最速表示と、場所名の変更（サーキット名など）</li><li>履歴の絞り込み（場所・日にち・モーターなど各項目）</li><li>シグナルの丸の数を2／3／4つから選択可能に</li><li>自動リピート間隔（1〜30分で選択）を追加</li><li>縦画面で丸を1.2倍に拡大、ラップを5行分表示</li><li>バージョン数字を画面の一番下に表示</li><li>変更内容ポップアップと、設定からの変更履歴の閲覧を追加</li></ul>
+      <button type="button" class="sw-changelog-close" onclick="swCloseChangelogPopup()">閉じる</button>
+    </div>
   </div>
 
 <script>
@@ -1004,6 +1038,7 @@ function openStopwatch() {
   document.getElementById('stopwatchOverlay').classList.add('active');
   renderSwLaps();
   renderSwHistory();
+  swMaybeShowChangelog();
 }
 
 function swStart() {
@@ -1683,10 +1718,96 @@ function swOpenSettings() {
   if (v) v.classList.add('active');
 }
 function swCloseViews() {
-  ['swHistoryView', 'swSettingsView'].forEach(function(id) {
+  ['swHistoryView', 'swSettingsView', 'swChangelogView'].forEach(function(id) {
     var v = document.getElementById(id);
     if (v) v.classList.remove('active');
   });
+}
+
+
+// ===== バージョンと変更履歴 =====
+var SW_VERSION = 'v11';
+var SW_CHANGELOG = [
+  { version: 'v11', date: '2026-11-12', items: [
+    '画面の並びを整理：シグナル → タイム → ボタン → ラップ（履歴と設定は専用画面に）',
+    'ストップすると履歴を自動保存（月/日 時：分、ラップも一緒に）',
+    '記録にメモ、写真（何枚でも）、モーター／シャーシ／電圧／タイヤ径／ギヤ比の欄を追加',
+    '保存時にGPSで場所を記録。場所ごとの最速表示と、場所名の変更（サーキット名など）',
+    '履歴の絞り込み（場所・日にち・モーターなど各項目）',
+    'シグナルの丸の数を2／3／4つから選択可能に',
+    '自動リピート間隔（1〜30分で選択）を追加',
+    '縦画面で丸を1.2倍に拡大、ラップを5行分表示',
+    'バージョン数字を画面の一番下に表示',
+    '変更内容ポップアップと、設定からの変更履歴の閲覧を追加'
+  ] },
+  { version: 'v10', date: '2026-11-12', items: ['全体を上に寄せ、ラップが5行分見えるようにした'] },
+  { version: 'v9', date: '2026-11-12', items: ['画面の一番下にバージョン数字を表示'] },
+  { version: 'v8', date: '2026-11-12', items: ['自動リピート間隔を1〜30分（1分刻み）で選べるようにした'] },
+  { version: 'v7', date: '2026-11-12', items: ['自動リピートを追加', '記録にモーター／シャーシ／電圧／タイヤ径／ギヤ比の欄と、項目での検索を追加'] },
+  { version: 'v6', date: '2026-11-12', items: ['写真を1つの記録に何枚でも追加できるようにした'] },
+  { version: 'v5', date: '2026-11-11', items: ['ボタン配置を3行に変更（スタート／ラップ／ストップ、合図＋計測／シグナルのみ、履歴／設定／リセット）', '行間を広げた'] },
+  { version: 'v4', date: '2026-11-11', items: ['設定にGPSの状態表示と取得テストを追加', '履歴の絞り込み（場所・日にち）を追加', '縦画面の丸を1.2倍に', '全体を約20%下げた'] },
+  { version: 'v3', date: '2026-11-11', items: ['履歴と設定を専用画面に移動', '保存時にGPS取得、場所ごとの最速と場所名の変更に対応', '記録に写真を付けられるようにした', '履歴は畳んだ状態の一覧にした'] },
+  { version: 'v2', date: '2026-11-11', items: ['点灯パターンが保存されない問題を修正', '履歴の自動保存（日時・ラップ・メモ）を追加', 'シグナルの丸の数（2／3／4）を追加'] },
+  { version: 'v1', date: '2026-11-11', items: ['単体版として整頓（並び替えと不要コードの除去）。シグナルの形・音・色は変更なし'] }
+];
+function swMaybeShowChangelog() {
+  var seen = null;
+  try { seen = localStorage.getItem('signal_sw_seen_changelog'); } catch (e) {}
+  if (seen === SW_VERSION) return;
+  var entry = SW_CHANGELOG[0];
+  if (!entry) return;
+  var title = document.getElementById('swChangelogPopupTitle');
+  if (title) title.textContent = '🎉 ' + entry.version + ' の変更内容（' + entry.date + '）';
+  var list = document.getElementById('swChangelogPopupList');
+  if (list) {
+    list.innerHTML = '';
+    entry.items.forEach(function(t) {
+      var li = document.createElement('li');
+      li.textContent = t;
+      list.appendChild(li);
+    });
+  }
+  var pop = document.getElementById('swChangelogPopup');
+  if (pop) pop.classList.add('active');
+}
+function swCloseChangelogPopup() {
+  try { localStorage.setItem('signal_sw_seen_changelog', SW_VERSION); } catch (e) {}
+  var pop = document.getElementById('swChangelogPopup');
+  if (pop) pop.classList.remove('active');
+}
+function renderSwChangelog() {
+  var box = document.getElementById('swChangelogList');
+  if (!box) return;
+  box.innerHTML = '';
+  SW_CHANGELOG.forEach(function(entry) {
+    var head = document.createElement('div');
+    head.className = 'sw-loc-head';
+    head.style.marginTop = '14px';
+    head.textContent = entry.version + '（' + entry.date + '）';
+    box.appendChild(head);
+    var ul = document.createElement('ul');
+    ul.className = 'sw-changelog-list';
+    entry.items.forEach(function(t) {
+      var li = document.createElement('li');
+      li.textContent = t;
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  });
+}
+function swOpenChangelog() {
+  renderSwChangelog();
+  var v = document.getElementById('swChangelogView');
+  if (v) v.classList.add('active');
+}
+function swToggleGps() {
+  var body = document.getElementById('swGpsBody');
+  var chev = document.getElementById('swGpsChev');
+  if (!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (chev) chev.textContent = open ? '▼' : '▲';
 }
 
 // standalone boot
