@@ -1,21 +1,19 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="mobile-web-app-capable" content="yes" />
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>シグナル付きストップウォッチ</title>
-<meta name="description" content="ミニ四駆スタート練習用。合図＋計測／シグナルのみ対応。" />
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="シグナル付きストップウォッチ" />
-<meta property="og:title" content="シグナル付きストップウォッチ" />
-<meta property="og:description" content="ミニ四駆スタート練習用。合図＋計測／シグナルのみ対応。" />
-<meta property="og:url" content="https://pastel-fft-engine-nn.github.io/race-setup-notes/start-signal.html" />
-<meta property="og:locale" content="ja_JP" />
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="シグナル付きストップウォッチ" />
-<meta name="twitter:description" content="ミニ四駆スタート練習用。合図＋計測／シグナルのみ対応。" />
+<meta name="description" content="ミニ四駆スタート練習用。合図＋計測／シグナルのみ対応。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="シグナル付きストップウォッチ">
+<meta property="og:title" content="シグナル付きストップウォッチ">
+<meta property="og:description" content="ミニ四駆スタート練習用。合図＋計測／シグナルのみ対応。">
+<meta property="og:url" content="https://pastel-fft-engine-nn.github.io/race-setup-notes/start-signal.html">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="シグナル付きストップウォッチ">
+<meta name="twitter:description" content="ミニ四駆スタート練習用。合図＋計測／シグナルのみ対応。">
 <style>
 
 html, body { margin:0; background:#0d0d0f; min-height:100%; }
@@ -42,7 +40,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   text-align: center; font-size: 13px; color: #8e8e93; margin-bottom: 14px;
 }
 .stopwatch-btns {
-  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px;
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;
 }
 .stopwatch-btns button {
   border: none; border-radius: 8px; padding: 14px 20px; font-size: 15px; font-weight: 700; cursor: pointer;
@@ -212,6 +210,10 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-history-body { margin-top: 8px; }
 .sw-photo-box { margin-top: 10px; }
 .sw-photo-img { width: 100%; border-radius: 6px; display: block; cursor: pointer; }
+.sw-photo-item { margin-bottom: 10px; }
+.sw-spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.sw-spec-input { width: 100%; box-sizing: border-box; border-radius: 8px; border: 1px solid #48484a; background: #2c2c2e; color: #f2f2f7; padding: 8px; font-size: 16px; }
+.sw-history-thumb-count { color: #aeaeb2; font-size: 11px; flex: 0 0 auto; }
 .sw-photo-btn { background: #3a3a3c; color: #fff; border: none; border-radius: 6px; padding: 10px 14px; font-size: 13px; font-weight: 700; cursor: pointer; margin: 0 8px 4px 0; }
 .sw-photo-full { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
 .sw-photo-full.active { display: flex; }
@@ -233,26 +235,28 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   <div class="sw-signal-fs" id="swSignalFs" role="dialog" aria-label="スタート合図">
     <button type="button" class="sw-signal-fs-cancel" id="swSignalFsCancel">キャンセル</button>
     <div class="sw-signal-fs-hint" id="swSignalFsHint">画面をタップしてカウント開始</div>
-    <div class="sw-signal-fs-dots" id="swSignalFsDots"></div>
+    <div class="sw-signal-fs-dots" id="swSignalFsDots"><div class="sw-fs-dot" id="swFsDot1"></div><div class="sw-fs-dot" id="swFsDot2"></div><div class="sw-fs-dot" id="swFsDot3"></div></div>
   </div>
 
   <!-- タイム計測（ストップウォッチ） -->
-  <div class="stopwatch-overlay" id="stopwatchOverlay">
+  <div class="stopwatch-overlay active" id="stopwatchOverlay">
     <div class="stopwatch-panel">
       <div style="font-size:16px;font-weight:700;">⏱️ タイム計測</div>
-      <div class="sw-signal-dots" id="swSignalDots" aria-hidden="true"></div>
+      <div class="sw-signal-dots" id="swSignalDots" aria-hidden="true"><div class="sw-dot" id="swDot1"></div><div class="sw-dot" id="swDot2"></div><div class="sw-dot" id="swDot3"></div></div>
       <div class="stopwatch-display" id="swDisplay">0.000</div>
       <div class="stopwatch-sub" id="swSub">停止中</div>      <div class="stopwatch-btns">
         <button type="button" class="sw-start" id="swStartBtn" onclick="swStart()">スタート</button>
+        <button type="button" class="sw-lap" id="swLapBtn" onclick="swLap()" disabled="">ラップ</button>
+        <button type="button" class="sw-stop" id="swStopBtn" onclick="swStop()" style="display:none;">ストップ</button>
+      </div>
+      <div class="stopwatch-btns">
         <button type="button" class="sw-signal" id="swSignalBtn" onclick="swStartWithSignal()">合図＋計測</button>
         <button type="button" class="sw-signal-only" id="swSignalOnlyBtn" onclick="swSignalOnly()">シグナルのみ</button>
-        <button type="button" class="sw-stop" id="swStopBtn" onclick="swStop()" style="display:none;">ストップ</button>
-        <button type="button" class="sw-lap" id="swLapBtn" onclick="swLap()" disabled>ラップ</button>
-        <button type="button" class="sw-reset" onclick="swReset()">リセット</button>
       </div>
       <div class="stopwatch-btns">
         <button type="button" class="sw-history-btn" id="swHistoryBtn" onclick="swOpenHistory()">📋 履歴</button>
         <button type="button" class="sw-settings-btn" id="swSettingsBtn" onclick="swOpenSettings()">⚙️ 設定</button>
+        <button type="button" class="sw-reset" onclick="swReset()">リセット</button>
       </div>
       <div class="stopwatch-laps" id="swLaps"></div>
 
@@ -276,10 +280,17 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
           <option value="">場所：すべて</option>
           <option value="none">場所：位置情報なし</option>
         </select>
-        <input type="date" id="swFilterDate" onchange="swHistoryFilterChanged()" />
+        <input type="date" id="swFilterDate" onchange="swHistoryFilterChanged()">
         <button type="button" class="sw-loc-edit-btn" onclick="swHistoryFilterClear()">絞り込み解除</button>
       </div>
-      <div id="swHistoryList"></div>
+      <div class="sw-filter-bar">
+        <select id="swFilterMotor" onchange="swHistoryFilterChanged()"></select>
+        <select id="swFilterChassis" onchange="swHistoryFilterChanged()"></select>
+        <select id="swFilterGear" onchange="swHistoryFilterChanged()"></select>
+        <input type="text" id="swFilterVoltage" placeholder="電圧" inputmode="decimal" oninput="swHistoryFilterChanged()" style="width:76px;">
+        <input type="text" id="swFilterTire" placeholder="タイヤ径" inputmode="decimal" oninput="swHistoryFilterChanged()" style="width:84px;">
+      </div>
+      <div id="swHistoryList"><div class="sw-history-empty">まだ履歴がありません。計測してストップすると自動で保存されます。</div></div>
       <p class="sw-history-note">ストップすると、その回のタイムとラップが自動で保存され、あわせてGPSで場所も記録します（取れない環境では場所なしになります）。保存先はこの端末のブラウザ内です（保存数・文字数・写真は端末の容量しだい）。</p>
     </div>
   </div>
@@ -302,30 +313,35 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
           <select id="swSignalMode" onchange="swSaveSignalSettings()">
             <option value="off">合図なし（即スタート）</option>
             <option value="visual">カウントダウンのみ</option>
-            <option value="sound" selected>カウントダウン＋音</option>
+            <option value="sound" selected="">カウントダウン＋音</option>
           </select>
         </label>
         <div class="sw-signal-row">
-          <label><input type="checkbox" id="swSignalBeep" checked onchange="swSaveSignalSettings()" /> 音声ビープ</label>
-          <label><input type="checkbox" id="swSignalVibrate" checked onchange="swSaveSignalSettings()" /> 振動</label>
-          <label><input type="checkbox" id="swSignalFlash" checked onchange="swSaveSignalSettings()" /> 画面フラッシュ</label>
+          <label><input type="checkbox" id="swSignalBeep" checked="" onchange="swSaveSignalSettings()"> 音声ビープ</label>
+          <label><input type="checkbox" id="swSignalVibrate" checked="" onchange="swSaveSignalSettings()"> 振動</label>
+          <label><input type="checkbox" id="swSignalFlash" checked="" onchange="swSaveSignalSettings()"> 画面フラッシュ</label>
         </div>
+        <label>自動リピート間隔
+          <select id="swSignalAutoRepeat" onchange="swSaveSignalSettings()">
+            <option value="0" selected="">しない</option>
+          <option value="1">1分おき</option><option value="2">2分おき</option><option value="3">3分おき</option><option value="4">4分おき</option><option value="5">5分おき</option><option value="6">6分おき</option><option value="7">7分おき</option><option value="8">8分おき</option><option value="9">9分おき</option><option value="10">10分おき</option><option value="11">11分おき</option><option value="12">12分おき</option><option value="13">13分おき</option><option value="14">14分おき</option><option value="15">15分おき</option><option value="16">16分おき</option><option value="17">17分おき</option><option value="18">18分おき</option><option value="19">19分おき</option><option value="20">20分おき</option><option value="21">21分おき</option><option value="22">22分おき</option><option value="23">23分おき</option><option value="24">24分おき</option><option value="25">25分おき</option><option value="26">26分おき</option><option value="27">27分おき</option><option value="28">28分おき</option><option value="29">29分おき</option><option value="30">30分おき</option></select>
+        </label>
         <label>点灯パターン
           <select id="swSignalPattern" onchange="swSaveSignalSettings()">
-            <option value="countdown" selected>カウントダウン（1つずつ増えて → 青）</option>
+            <option value="countdown" selected="">カウントダウン（1つずつ増えて → 青）</option>
             <option value="allred">一斉切替（最初から全て赤 → 全て青）</option>
           </select>
         </label>
         <label>シグナルの丸の数
           <select id="swSignalCount" onchange="swSignalCountChanged()">
             <option value="2">2つ</option>
-            <option value="3" selected>3つ</option>
+            <option value="3" selected="">3つ</option>
             <option value="4">4つ</option>
           </select>
         </label>
         <label>切替・開始タイミング
           <select id="swSignalTiming" onchange="swSaveSignalSettings()">
-            <option value="normal" selected>通常（約1秒）</option>
+            <option value="normal" selected="">通常（約1秒）</option>
             <option value="delay5">長め（約5秒）</option>
             <option value="random">ランダム（0.4 / 1.0 / 1.8 / 2.5 秒）</option>
           </select>
@@ -335,20 +351,20 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
           一斉切替：スタート／タッチ前から全て赤点灯。操作すると設定秒数のあと全て青に切り替わるだけ（カウントダウンなし）。
         </p>
         <label>カスタム音（任意・端末内の音声ファイル）
-          <input type="file" id="swSignalFile" accept="audio/*" onchange="swLoadCustomSound(this)" />
+          <input type="file" id="swSignalFile" accept="audio/*" onchange="swLoadCustomSound(this)">
         </label>
         <p style="margin-top:8px;color:#8e8e93;font-size:11px;line-height:1.4;">
           デフォルトは自作音（短:1100Hz / 長:3700Hz）です。カスタム音を選ぶと上書きされます（この端末のブラウザ内だけ）。
           スタート＝すぐ計測／合図＋計測＝この画面のまま合図後に計測／シグナルのみ＝大画面合図だけ（計測しない）。
-          振動は Android 等の対応ブラウザのみ動作します。iPhone の Safari は仕様上バイブ非対応です。
+          振動は Android 等の対応ブラウザのみ動作します。iPhone の Safari は仕様上バイブ非対応です。自動リピート間隔を選ぶと、合図の開始からその間隔（1〜30分）ごとに合図が繰り返されます（合図＋計測ではタイマーも自動でリセットされて次が始まります）。繰り返しを止めるにはリセット、シグナルのみではキャンセルを押してください。
         </p>
       </div>
     </div>
   </div>
 
-  <input type="file" id="swPhotoInput" accept="image/*" onchange="swOnPhotoFile(this)" style="display:none;" />
+  <input type="file" id="swPhotoInput" accept="image/*" multiple="" onchange="swOnPhotoFile(this)" style="display:none;">
   <div class="sw-photo-full" id="swPhotoFull" onclick="swClosePhoto()">
-    <img id="swPhotoFullImg" alt="写真" />
+    <img id="swPhotoFullImg" alt="写真">
   </div>
 
 <script>
@@ -378,6 +394,29 @@ function swGetBuiltinAudio(kind) {
   } catch (e) { return null; }
 }
 var swSignalBusy = false;
+var swAutoRepeatMs = 60000;
+function swFillAutoRepeatOptions() {
+  var sel = document.getElementById('swSignalAutoRepeat');
+  if (!sel || sel.options.length > 1) return;
+  for (var i = 1; i <= 30; i++) {
+    var o = document.createElement('option');
+    o.value = String(i);
+    o.textContent = i + '分おき';
+    sel.appendChild(o);
+  }
+}
+function swAutoRepeatMinutes() {
+  var v = parseInt((document.getElementById('swSignalAutoRepeat') || {}).value || '0', 10);
+  if (isNaN(v) || v < 0 || v > 30) v = 0;
+  return v;
+}
+function swAutoRepeatOn() {
+  return swAutoRepeatMinutes() > 0;
+}
+function swSyncAutoRepeatMs() {
+  var m = swAutoRepeatMinutes();
+  if (m > 0) swAutoRepeatMs = m * 60000;
+}
 var swSignalTimers = [];
 var swCustomAudio = null;
 var swAudioCtx = null;
@@ -395,6 +434,11 @@ function swLoadSignalSettings() {
     if (mode && s.mode) mode.value = s.mode;
     if (pattern && s.pattern) pattern.value = s.pattern;
     if (count && s.count) count.value = String(s.count);
+    swFillAutoRepeatOptions();
+    var autoRep = document.getElementById('swSignalAutoRepeat');
+    if (autoRep && s.autoRepeatMin) autoRep.value = String(s.autoRepeatMin);
+    else if (autoRep && s.autoRepeat === true) autoRep.value = '1';
+    swSyncAutoRepeatMs();
     if (beep && typeof s.beep === 'boolean') beep.checked = s.beep;
     if (vib && typeof s.vibrate === 'boolean') vib.checked = s.vibrate;
     if (flash && typeof s.flash === 'boolean') flash.checked = s.flash;
@@ -410,8 +454,10 @@ function swSaveSignalSettings() {
       flash: !!(document.getElementById('swSignalFlash') || {}).checked,
       timing: (document.getElementById('swSignalTiming') || {}).value || 'normal',
       pattern: (document.getElementById('swSignalPattern') || {}).value || 'countdown',
-      count: parseInt((document.getElementById('swSignalCount') || {}).value || '3', 10) || 3
+      count: parseInt((document.getElementById('swSignalCount') || {}).value || '3', 10) || 3,
+      autoRepeatMin: parseInt((document.getElementById('swSignalAutoRepeat') || {}).value || '0', 10) || 0
     }));
+    swSyncAutoRepeatMs();
   } catch (e) {}
 }
 function swClearSignalTimers() {
@@ -695,6 +741,7 @@ function swRunSignalSequence(kind) {
   var timing = (document.getElementById('swSignalTiming') || {}).value || 'normal';
   var pattern = (document.getElementById('swSignalPattern') || {}).value || 'countdown';
   var sigCount = getSwSignalCount();
+  var seqStartTs = Date.now();
   var GO_RANDOM_MS = [400, 1000, 1800, 2500];
   // 一斉切替: パネル上でも操作前から全て赤（リセット直後に再点灯）
   if (pattern === 'allred' && !useFullscreen) {
@@ -714,6 +761,31 @@ function swRunSignalSequence(kind) {
   function setDots(nRed, allBlue) {
     if (useFullscreen) swFsSetDotState(nRed, allBlue);
     else swSetDotState(nRed, allBlue);
+  }
+
+  function scheduleNextRep() {
+    if (!swAutoRepeatOn()) return;
+    var remain = swAutoRepeatMs - (Date.now() - seqStartTs);
+    var minDelay = (useFullscreen ? 700 : 350) + 300;
+    if (remain < minDelay) remain = minDelay;
+    swSignalTimers.push(setTimeout(function() {
+      if (swSignalBusy) return;
+      if (useFullscreen) {
+        var fsEl = document.getElementById('swSignalFs');
+        if (!fsEl || !fsEl.classList.contains('active')) return;
+        if (countdownStarted) return;
+      } else {
+        swReset();
+      }
+      countdownStarted = false;
+      seqStartTs = Date.now();
+      swSignalBusy = true;
+      try { swPrimeVibrate(); } catch (eP) {}
+      if (btn) btn.disabled = true;
+      if (onlyBtn) onlyBtn.disabled = true;
+      if (sub) sub.textContent = '合図中…';
+      beginAfterArm();
+    }, remain));
   }
 
   function finishBusy() {
@@ -772,6 +844,7 @@ if (pattern === 'allred') {
         swStart();
       }
     }, useFullscreen ? 700 : 350));
+    scheduleNextRep();
   }
 
   function runAllRedSwitch() {
@@ -923,6 +996,7 @@ function swTick() {
 }
 
 function openStopwatch() {
+  swFillAutoRepeatOptions();
   swLoadSignalSettings();
   buildSwDots();
   swLoadHistory();
@@ -1018,6 +1092,11 @@ function swLoadHistory() {
     var h = JSON.parse(localStorage.getItem('signal_sw_history') || '[]');
     swHistory = Array.isArray(h) ? h : [];
   } catch (e) { swHistory = []; }
+  // 旧形式（写真1枚）を新形式（複数枚）へ移行
+  swHistory.forEach(function(rec) {
+    if (!Array.isArray(rec.photos)) rec.photos = rec.photo ? [rec.photo] : [];
+    if ('photo' in rec) delete rec.photo;
+  });
 }
 function swPersistHistory() {
   try {
@@ -1040,7 +1119,8 @@ function swAutoSaveHistory() {
     laps: swLaps.map(function(l) { return { split: l.split, total: l.total }; }),
     memo: '',
     locationId: null,
-    photo: null
+    photos: [],
+    spec: { motor: '', chassis: '', voltage: '', tire: '', gear: '' }
   };
   var idx = -1;
   for (var i = 0; i < swHistory.length; i++) {
@@ -1049,7 +1129,8 @@ function swAutoSaveHistory() {
   if (idx >= 0) {
     rec.memo = swHistory[idx].memo || '';
     rec.locationId = swHistory[idx].locationId || null;
-    rec.photo = swHistory[idx].photo || null;
+    rec.photos = Array.isArray(swHistory[idx].photos) ? swHistory[idx].photos.slice() : (swHistory[idx].photo ? [swHistory[idx].photo] : []);
+    rec.spec = swHistory[idx].spec ? JSON.parse(JSON.stringify(swHistory[idx].spec)) : { motor: '', chassis: '', voltage: '', tire: '', gear: '' };
     swHistory[idx] = rec;
   } else {
     swHistory.unshift(rec);
@@ -1074,6 +1155,69 @@ function swSetHistoryMemo(id, text) {
   }
   swPersistHistory();
 }
+
+// ===== 記録の項目（モーター/シャーシ/電圧/タイヤ径/ギヤ比） =====
+var SW_MOTORS = ['ノーマル', 'トルクチューン2', 'レブチューン2', 'アトミックチューン2', 'ライトダッシュ', 'パワーダッシュ', 'スプリントダッシュ', 'ハイパーダッシュ3', 'ウルトラダッシュ', 'プラズマダッシュ', 'ジェットダッシュ', 'トルクチューン2 PRO', 'レブチューン2 PRO', 'アトミックチューン2 PRO', 'ライトダッシュPRO', 'ハイパーダッシュPRO', 'マッハダッシュPRO', 'その他'];
+var SW_CHASSIS = ['MSシャーシ', 'MAシャーシ', 'FM-Aシャーシ', 'ARシャーシ', 'VSシャーシ', 'スーパーXXシャーシ', 'スーパーXシャーシ', 'スーパーTZ-Xシャーシ', 'スーパーTZシャーシ', 'スーパーFMシャーシ', 'スーパー1シャーシ', 'ゼロシャーシ', 'タイプ5シャーシ', 'その他'];
+var SW_GEARS = ['3.5:1', '3.7:1', '4:1', '4.2:1', '5:1'];
+function swSpecOf(rec) {
+  if (!rec.spec) rec.spec = { motor: '', chassis: '', voltage: '', tire: '', gear: '' };
+  return rec.spec;
+}
+function swSetHistorySpec(id, kind, value) {
+  for (var i = 0; i < swHistory.length; i++) {
+    if (swHistory[i].id === id) { swSpecOf(swHistory[i])[kind] = value; break; }
+  }
+  swPersistHistory();
+}
+function swBuildSpecSelect(kind, value) {
+  var lists = { motor: SW_MOTORS, chassis: SW_CHASSIS, gear: SW_GEARS };
+  var labels = { motor: 'モーター', chassis: 'シャーシ', gear: 'ギヤ比' };
+  var sel = document.createElement('select');
+  sel.className = 'sw-spec-input';
+  var o0 = document.createElement('option');
+  o0.value = '';
+  o0.textContent = labels[kind];
+  sel.appendChild(o0);
+  (lists[kind] || []).forEach(function(v) {
+    var o = document.createElement('option');
+    o.value = v;
+    o.textContent = v;
+    sel.appendChild(o);
+  });
+  sel.value = value || '';
+  if (value && sel.value !== value) {
+    var ox = document.createElement('option');
+    ox.value = value;
+    ox.textContent = value;
+    sel.appendChild(ox);
+    sel.value = value;
+  }
+  return sel;
+}
+function swNumEq(a, b) {
+  var x = parseFloat(a), y = parseFloat(b);
+  if (!isNaN(x) && !isNaN(y)) return x === y;
+  return String(a || '') === String(b || '');
+}
+function fillFilterSelect(id, list, allLabel) {
+  var sel = document.getElementById(id);
+  if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '';
+  var o0 = document.createElement('option');
+  o0.value = '';
+  o0.textContent = allLabel;
+  sel.appendChild(o0);
+  list.forEach(function(v) {
+    var o = document.createElement('option');
+    o.value = v;
+    o.textContent = v;
+    sel.appendChild(o);
+  });
+  sel.value = cur;
+}
+
 function swDateKey(ts) {
   var d = new Date(ts);
   var m = String(d.getMonth() + 1); if (m.length < 2) m = '0' + m;
@@ -1084,10 +1228,10 @@ function swHistoryFilterChanged() {
   renderSwHistory();
 }
 function swHistoryFilterClear() {
-  var loc = document.getElementById('swFilterLoc');
-  var date = document.getElementById('swFilterDate');
-  if (loc) loc.value = '';
-  if (date) date.value = '';
+  ['swFilterLoc', 'swFilterDate', 'swFilterMotor', 'swFilterChassis', 'swFilterGear', 'swFilterVoltage', 'swFilterTire'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   renderSwHistory();
 }
 function renderSwFilterOptions() {
@@ -1111,6 +1255,9 @@ function renderSwFilterOptions() {
   });
   sel.value = cur;
   if (sel.value !== cur) sel.value = '';
+  fillFilterSelect('swFilterMotor', SW_MOTORS, 'モーター：すべて');
+  fillFilterSelect('swFilterChassis', SW_CHASSIS, 'シャーシ：すべて');
+  fillFilterSelect('swFilterGear', SW_GEARS, 'ギヤ比：すべて');
 }
 function renderSwHistory() {
   var box = document.getElementById('swHistoryList');
@@ -1125,10 +1272,21 @@ function renderSwHistory() {
   }
   var locF = (document.getElementById('swFilterLoc') || {}).value || '';
   var dateF = (document.getElementById('swFilterDate') || {}).value || '';
+  var motorF = (document.getElementById('swFilterMotor') || {}).value || '';
+  var chassisF = (document.getElementById('swFilterChassis') || {}).value || '';
+  var gearF = (document.getElementById('swFilterGear') || {}).value || '';
+  var voltF = ((document.getElementById('swFilterVoltage') || {}).value || '').replace(/^\s+|\s+$/g, '');
+  var tireF = ((document.getElementById('swFilterTire') || {}).value || '').replace(/^\s+|\s+$/g, '');
   var list = swHistory.filter(function(rec) {
     if (locF === 'none' && rec.locationId) return false;
     if (locF && locF !== 'none' && rec.locationId !== locF) return false;
     if (dateF && swDateKey(rec.ts) !== dateF) return false;
+    var sp = rec.spec || {};
+    if (motorF && sp.motor !== motorF) return false;
+    if (chassisF && sp.chassis !== chassisF) return false;
+    if (gearF && sp.gear !== gearF) return false;
+    if (voltF && !swNumEq(sp.voltage, voltF)) return false;
+    if (tireF && !swNumEq(sp.tire, tireF)) return false;
     return true;
   });
   if (!list.length) {
@@ -1159,12 +1317,18 @@ function renderSwHistory() {
     locEl.className = 'sw-history-loc';
     locEl.textContent = swLocName(rec);
     head.appendChild(locEl);
-    if (rec.photo) {
+    if (rec.photos && rec.photos.length) {
       var thumb = document.createElement('img');
       thumb.className = 'sw-history-thumb';
-      thumb.src = rec.photo;
+      thumb.src = rec.photos[0];
       thumb.alt = '写真';
       head.appendChild(thumb);
+      if (rec.photos.length > 1) {
+        var cntEl = document.createElement('span');
+        cntEl.className = 'sw-history-thumb-count';
+        cntEl.textContent = '×' + rec.photos.length;
+        head.appendChild(cntEl);
+      }
     }
     var chev = document.createElement('span');
     chev.className = 'sw-history-chev';
@@ -1195,6 +1359,39 @@ function renderSwHistory() {
         body.appendChild(row);
       });
     }
+    var spec = swSpecOf(rec);
+    var grid = document.createElement('div');
+    grid.className = 'sw-spec-grid';
+    var motorSel = swBuildSpecSelect('motor', spec.motor);
+    motorSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'motor', motorSel.value); });
+    grid.appendChild(motorSel);
+    var chassisSel = swBuildSpecSelect('chassis', spec.chassis);
+    chassisSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'chassis', chassisSel.value); });
+    grid.appendChild(chassisSel);
+    var voltIn = document.createElement('input');
+    voltIn.type = 'number';
+    voltIn.step = '0.01';
+    voltIn.min = '0';
+    voltIn.inputMode = 'decimal';
+    voltIn.className = 'sw-spec-input';
+    voltIn.placeholder = '電圧（V）';
+    voltIn.value = spec.voltage || '';
+    voltIn.addEventListener('input', function() { swSetHistorySpec(rec.id, 'voltage', voltIn.value); });
+    grid.appendChild(voltIn);
+    var tireIn = document.createElement('input');
+    tireIn.type = 'number';
+    tireIn.step = '0.1';
+    tireIn.min = '0';
+    tireIn.inputMode = 'decimal';
+    tireIn.className = 'sw-spec-input';
+    tireIn.placeholder = 'タイヤ径（mm）';
+    tireIn.value = spec.tire || '';
+    tireIn.addEventListener('input', function() { swSetHistorySpec(rec.id, 'tire', tireIn.value); });
+    grid.appendChild(tireIn);
+    var gearSel = swBuildSpecSelect('gear', spec.gear);
+    gearSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'gear', gearSel.value); });
+    grid.appendChild(gearSel);
+    body.appendChild(grid);
     var memo = document.createElement('input');
     memo.type = 'text';
     memo.className = 'sw-history-memo';
@@ -1204,33 +1401,30 @@ function renderSwHistory() {
     body.appendChild(memo);
     var photoBox = document.createElement('div');
     photoBox.className = 'sw-photo-box';
-    if (rec.photo) {
+    var photos = Array.isArray(rec.photos) ? rec.photos : [];
+    photos.forEach(function(url, pi) {
+      var item = document.createElement('div');
+      item.className = 'sw-photo-item';
       var img = document.createElement('img');
       img.className = 'sw-photo-img';
-      img.src = rec.photo;
+      img.src = url;
       img.alt = '写真';
-      img.addEventListener('click', function() { swViewPhoto(rec.photo); });
-      photoBox.appendChild(img);
-      var chBtn = document.createElement('button');
-      chBtn.type = 'button';
-      chBtn.className = 'sw-photo-btn';
-      chBtn.textContent = '写真を変更';
-      chBtn.addEventListener('click', function() { swPickPhoto(rec.id); });
-      photoBox.appendChild(chBtn);
+      img.addEventListener('click', function() { swViewPhoto(url); });
+      item.appendChild(img);
       var rmBtn = document.createElement('button');
       rmBtn.type = 'button';
       rmBtn.className = 'sw-photo-btn';
-      rmBtn.textContent = '写真を削除';
-      rmBtn.addEventListener('click', function() { swRemovePhoto(rec.id); });
-      photoBox.appendChild(rmBtn);
-    } else {
-      var addBtn = document.createElement('button');
-      addBtn.type = 'button';
-      addBtn.className = 'sw-photo-btn';
-      addBtn.textContent = '📷 写真を追加';
-      addBtn.addEventListener('click', function() { swPickPhoto(rec.id); });
-      photoBox.appendChild(addBtn);
-    }
+      rmBtn.textContent = 'この写真を削除';
+      rmBtn.addEventListener('click', function() { swRemovePhoto(rec.id, pi); });
+      item.appendChild(rmBtn);
+      photoBox.appendChild(item);
+    });
+    var addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'sw-photo-btn';
+    addBtn.textContent = '📷 写真を追加';
+    addBtn.addEventListener('click', function() { swPickPhoto(rec.id); });
+    photoBox.appendChild(addBtn);
     body.appendChild(photoBox);
     var delRow = document.createElement('div');
     delRow.style.textAlign = 'right';
@@ -1415,16 +1609,24 @@ function swPickPhoto(id) {
 }
 function swStorePhoto(id, dataUrl) {
   for (var i = 0; i < swHistory.length; i++) {
-    if (swHistory[i].id === id) { swHistory[i].photo = dataUrl; break; }
-  }
-  if (!swPersistHistory()) {
-    alert('写真を保存できませんでした（端末の空き容量不足の可能性）');
+    if (swHistory[i].id === id) {
+      if (!Array.isArray(swHistory[i].photos)) swHistory[i].photos = [];
+      swHistory[i].photos.push(dataUrl);
+      if (!swPersistHistory()) {
+        swHistory[i].photos.pop();
+        alert('写真を保存できませんでした（端末の空き容量不足の可能性）');
+      }
+      break;
+    }
   }
   renderSwHistory();
 }
-function swRemovePhoto(id) {
+function swRemovePhoto(id, index) {
   for (var i = 0; i < swHistory.length; i++) {
-    if (swHistory[i].id === id) { swHistory[i].photo = null; break; }
+    if (swHistory[i].id === id && Array.isArray(swHistory[i].photos)) {
+      swHistory[i].photos.splice(index, 1);
+      break;
+    }
   }
   swPersistHistory();
   renderSwHistory();
@@ -1439,24 +1641,33 @@ function swClosePhoto() {
   if (f) f.classList.remove('active');
 }
 function swOnPhotoFile(input) {
-  var file = input.files && input.files[0];
-  if (!file || !swPhotoTargetId) return;
+  var files = input.files ? Array.prototype.slice.call(input.files) : [];
+  if (!files.length || !swPhotoTargetId) return;
   var targetId = swPhotoTargetId;
-  var reader = new FileReader();
-  reader.onload = function() {
-    var img = new Image();
-    img.onload = function() {
-      var max = 1024;
-      var scale = Math.min(1, max / Math.max(img.width, img.height));
-      var cv = document.createElement('canvas');
-      cv.width = Math.round(img.width * scale);
-      cv.height = Math.round(img.height * scale);
-      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      swStorePhoto(targetId, cv.toDataURL('image/jpeg', 0.75));
+  var idx = 0;
+  function next() {
+    if (idx >= files.length) return;
+    var file = files[idx++];
+    var reader = new FileReader();
+    reader.onload = function() {
+      var img = new Image();
+      img.onload = function() {
+        var max = 1024;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * scale);
+        cv.height = Math.round(img.height * scale);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        swStorePhoto(targetId, cv.toDataURL('image/jpeg', 0.75));
+        next();
+      };
+      img.onerror = next;
+      img.src = reader.result;
     };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(file);
+    reader.onerror = next;
+    reader.readAsDataURL(file);
+  }
+  next();
 }
 
 // ===== 画面の開閉 =====
@@ -1484,5 +1695,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
-</body>
-</html>
+
+
+</body></html>
