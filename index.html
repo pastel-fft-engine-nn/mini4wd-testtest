@@ -192,7 +192,20 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-view-back { background: none; border: none; color: #7EC0E0; font-size: 15px; font-weight: 600; cursor: pointer; padding: 4px 0; }
 .sw-view-title { font-size: 16px; font-weight: 700; }
 .sw-history-btn { background: #3a3a3c; color: #fff; }
+.sw-photo-stock-btn { background: #3a3a3c; color: #fff; flex: 1; }
+.sw-stock-box { margin: -8px 0 12px; }
+.sw-stock-head { font-size: 12px; color: #aeaeb2; margin-bottom: 6px; }
+.sw-stock-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw-stock-thumb { position: relative; width: 64px; height: 64px; }
+.sw-stock-thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; cursor: pointer; display: block; }
+.sw-stock-rm { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; border: none; background: #ff3b30; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; line-height: 20px; }
 .sw-settings-btn { background: #48484a; color: #fff; }
+.stopwatch-btns .sw-reaction-btn { background: #000; color: #ff9f0a; border: 2px solid #ff9f0a; flex: 1; }
+.sw-today-summary { background: rgba(255,255,255,0.06); border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; color: #e5e5ea; font-variant-numeric: tabular-nums; }
+.sw-reaction-tap { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 30px 12px; text-align: center; font-size: 15px; font-weight: 700; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; margin: 12px 0; color: #fff; }
+.sw-reaction-tap.go { background: #6BAFD6; }
+.sw-reaction-stats { font-size: 13px; color: #aeaeb2; text-align: center; line-height: 1.8; font-variant-numeric: tabular-nums; }
+.sw-reaction-cancel { width: 100%; background: #3a3a3c; color: #fff; border: none; border-radius: 8px; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 14px; }
 .sw-loc-head { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
 .sw-loc-row { background: rgba(255,255,255,0.06); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
 .sw-loc-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -218,6 +231,8 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-photo-full { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
 .sw-photo-full.active { display: flex; }
 .sw-photo-full img { max-width: 100%; max-height: 100%; }
+.sw-cal-wrap { position: relative; display: inline-block; }
+.sw-cal-text { position: absolute; left: 1px; right: 1px; top: 1px; bottom: 1px; background: #2c2c2e; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; pointer-events: none; }
 .sw-gps-toggle { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .sw-changelog-btn { width: 100%; background: #3a3a3c; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 16px; box-sizing: border-box; }
 .sw-changelog-list { margin: 6px 0 10px; padding-left: 20px; color: #d1d1d6; font-size: 13px; line-height: 1.6; }
@@ -226,6 +241,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-changelog-card { background: #1c1c1e; color: #fff; border-radius: 12px; padding: 20px 18px; width: 100%; max-width: 440px; max-height: 82vh; overflow-y: auto; box-sizing: border-box; }
 .sw-changelog-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
 .sw-changelog-close { width: 100%; background: #6BAFD6; color: #fff; border: none; border-radius: 8px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+.sw-changelog-note { font-size: 12px; color: #aeaeb2; line-height: 1.6; margin: 10px 0 2px; }
 @media (orientation: portrait) {
   .sw-dot { width: min(25.2vw, 101px); height: min(25.2vw, 101px); }
   #swSignalDots.cnt4 .sw-dot { width: min(20vw, 80px); height: min(20vw, 80px); }
@@ -266,10 +282,20 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
         <button type="button" class="sw-settings-btn" id="swSettingsBtn" onclick="swOpenSettings()">⚙️ 設定</button>
         <button type="button" class="sw-reset" onclick="swReset()">リセット</button>
       </div>
+      <div class="stopwatch-btns">
+        <button type="button" class="sw-photo-stock-btn" id="swStockBtn" onclick="swPickStockPhoto()">📷 写真をストック</button>
+      </div>
+      <div class="stopwatch-btns">
+        <button type="button" class="sw-reaction-btn" id="swReactionBtn" onclick="swOpenReaction()">⚡ 反応時間チャレンジ</button>
+      </div>
+      <div class="sw-stock-box" id="swStockBox" style="display:none;">
+        <div class="sw-stock-head" id="swStockHead"></div>
+        <div class="sw-stock-thumbs" id="swStockThumbs"></div>
+      </div>
       <div class="stopwatch-laps" id="swLaps"></div>
 
       <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:10px;">単位は秒です。ベストラップも自動で更新します。</p>
-      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v11</p>
+      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v17</p>
     </div>
   </div>
 
@@ -281,23 +307,24 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
         <button type="button" class="sw-view-back" onclick="swCloseViews()">← 戻る</button>
         <div class="sw-view-title">履歴</div>
       </div>
-      <div class="sw-loc-head">📍 場所ごとの最速</div>
-      <div id="swLocList"></div>
+      <div class="sw-today-summary" id="swTodaySummary">今日はまだ記録がありません</div>
+      <div class="sw-loc-head sw-gps-toggle" onclick="swToggleLocList()">📍 場所ごとの最速 <span id="swLocChev">▼</span></div>
+      <div id="swLocList" style="display:none;"></div>
       <div class="sw-loc-head" style="margin-top:18px;">📋 記録（タップで開く）</div>
       <div class="sw-filter-bar">
         <select id="swFilterLoc" onchange="swHistoryFilterChanged()">
           <option value="">場所：すべて</option>
           <option value="none">場所：位置情報なし</option>
         </select>
-        <input type="date" id="swFilterDate" onchange="swHistoryFilterChanged()">
+        <span class="sw-cal-wrap"><input type="date" id="swFilterDate" onchange="swHistoryFilterChanged()"><span class="sw-cal-text" id="swCalText" style="display: flex;">カレンダー</span></span>
         <button type="button" class="sw-loc-edit-btn" onclick="swHistoryFilterClear()">絞り込み解除</button>
       </div>
       <div class="sw-filter-bar">
         <select id="swFilterMotor" onchange="swHistoryFilterChanged()"></select>
         <select id="swFilterChassis" onchange="swHistoryFilterChanged()"></select>
         <select id="swFilterGear" onchange="swHistoryFilterChanged()"></select>
-        <input type="text" id="swFilterVoltage" placeholder="電圧" inputmode="decimal" oninput="swHistoryFilterChanged()" style="width:76px;">
-        <input type="text" id="swFilterTire" placeholder="タイヤ径" inputmode="decimal" oninput="swHistoryFilterChanged()" style="width:84px;">
+        <select id="swFilterVoltage" onchange="swHistoryFilterChanged()"></select>
+        <select id="swFilterTire" onchange="swHistoryFilterChanged()"></select>
       </div>
       <div id="swHistoryList"><div class="sw-history-empty">まだ履歴がありません。計測してストップすると自動で保存されます。</div></div>
       <p class="sw-history-note">ストップすると、その回のタイムとラップが自動で保存され、あわせてGPSで場所も記録します（取れない環境では場所なしになります）。保存先はこの端末のブラウザ内です（保存数・文字数・写真は端末の容量しだい）。</p>
@@ -346,7 +373,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
           <select id="swSignalTiming" onchange="swSaveSignalSettings()">
             <option value="normal" selected="">通常（約1秒）</option>
             <option value="delay5">長め（約5秒）</option>
-            <option value="random">ランダム（0.4 / 1.0 / 1.8 / 2.5 秒）</option>
+            <option value="random">ランダム（0.7〜2.8秒）</option>
           </select>
         </label>
         <p style="margin:4px 0 8px;color:#8e8e93;font-size:11px;line-height:1.4;">
@@ -392,11 +419,29 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
     </div>
   </div>
 
+  <!-- 反応時間チャレンジ画面 -->
+  <div class="sw-view" id="swReactionView">
+    <div class="sw-view-inner">
+      <div class="sw-view-head">
+        <button type="button" class="sw-view-back" onclick="swCloseReaction()">← 戻る</button>
+        <div class="sw-view-title">⚡ 反応時間チャレンジ</div>
+      </div>
+      <div class="sw-signal-dots" id="swReactionDots" aria-hidden="true"></div>
+      <div class="stopwatch-display" id="swReactionDisplay">—</div>
+      <div class="stopwatch-sub" id="swReactionSub">青になった瞬間に画面をタップしてください</div>
+      <div class="sw-reaction-tap" id="swReactionTap" onclick="swReactionTap()">タップでスタート</div>
+      <div class="sw-reaction-stats" id="swReactionStats"></div>
+      <button type="button" class="sw-reaction-cancel" onclick="swReactionCancel()">やめる</button>
+      <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:14px;line-height:1.6;">合図は設定の「点灯パターン」「切替・開始タイミング」「シグナルの丸の数」と同じ流れです。<br>青の前にタップするとフライングです。ベストはこの画面だけに残ります（履歴には混ぜません）。</p>
+    </div>
+  </div>
+
   <!-- 変更内容ポップアップ（版が上がったときだけ表示） -->
   <div class="sw-changelog-popup active" id="swChangelogPopup">
     <div class="sw-changelog-card">
-      <div class="sw-changelog-title" id="swChangelogPopupTitle">🎉 v11 の変更内容（2026-11-12）</div>
-      <ul class="sw-changelog-list" id="swChangelogPopupList"><li>画面の並びを整理：シグナル → タイム → ボタン → ラップ（履歴と設定は専用画面に）</li><li>ストップすると履歴を自動保存（月/日 時：分、ラップも一緒に）</li><li>記録にメモ、写真（何枚でも）、モーター／シャーシ／電圧／タイヤ径／ギヤ比の欄を追加</li><li>保存時にGPSで場所を記録。場所ごとの最速表示と、場所名の変更（サーキット名など）</li><li>履歴の絞り込み（場所・日にち・モーターなど各項目）</li><li>シグナルの丸の数を2／3／4つから選択可能に</li><li>自動リピート間隔（1〜30分で選択）を追加</li><li>縦画面で丸を1.2倍に拡大、ラップを5行分表示</li><li>バージョン数字を画面の一番下に表示</li><li>変更内容ポップアップと、設定からの変更履歴の閲覧を追加</li></ul>
+      <div class="sw-changelog-title" id="swChangelogPopupTitle">🎉 v17 の変更内容（2026-11-12）</div>
+      <ul class="sw-changelog-list" id="swChangelogPopupList"><li>赤が増える間隔を1秒から1.2秒に少しゆっくりにした</li><li>反応時間チャレンジのボタンを、オレンジ枠＋黒ボタンに変えた</li></ul>
+      <p class="sw-changelog-note">今までの変更分は、設定の「変更履歴を見る」からいつでも確認できます。</p>
       <button type="button" class="sw-changelog-close" onclick="swCloseChangelogPopup()">閉じる</button>
     </div>
   </div>
@@ -427,6 +472,8 @@ function swGetBuiltinAudio(kind) {
     return swTickAudio;
   } catch (e) { return null; }
 }
+var SW_STEP_MS = 1200;
+function swRandomGoMs() { return 700 + Math.random() * 2100; }
 var swSignalBusy = false;
 var swAutoRepeatMs = 60000;
 function swFillAutoRepeatOptions() {
@@ -776,7 +823,6 @@ function swRunSignalSequence(kind) {
   var pattern = (document.getElementById('swSignalPattern') || {}).value || 'countdown';
   var sigCount = getSwSignalCount();
   var seqStartTs = Date.now();
-  var GO_RANDOM_MS = [400, 1000, 1800, 2500];
   // 一斉切替: パネル上でも操作前から全て赤（リセット直後に再点灯）
   if (pattern === 'allred' && !useFullscreen) {
     setDots(sigCount, false);
@@ -785,7 +831,7 @@ function swRunSignalSequence(kind) {
   // 切替時間（カウントダウン: 最後の赤→青 / 一斉切替: 全て赤表示→全て青）
   var switchMs = 1000;
   if (timing === 'delay5') switchMs = 5000;
-  else if (timing === 'random') switchMs = GO_RANDOM_MS[Math.floor(Math.random() * GO_RANDOM_MS.length)];
+  else if (timing === 'random') switchMs = swRandomGoMs();
   // カウントダウン時のみ: 5秒ディレイは「カウント開始前」の待機
   var preDelay = (pattern === 'countdown' && timing === 'delay5') ? 5000 : 0;
   var delayAfterThird = switchMs;
@@ -912,7 +958,7 @@ if (pattern === 'allred') {
     var hint = document.getElementById('swSignalFsHint');
     if (useFullscreen && hint) hint.textContent = '合図中…';
 
-    // カウントダウン: 丸の数だけ、1秒ごとに赤を1つずつ増やす
+    // カウントダウン: 丸の数だけ、1.2秒ごとに赤を1つずつ増やす
     for (var ci = 1; ci <= sigCount; ci++) {
       (function(n) {
         swSignalTimers.push(setTimeout(function() {
@@ -923,19 +969,19 @@ if (pattern === 'allred') {
             if (sub) sub.textContent = 'まもなく…';
             if (useFullscreen && hint) hint.textContent = 'まもなく…';
           }
-        }, (n - 1) * 1000));
+        }, (n - 1) * SW_STEP_MS));
       })(ci);
     }
     // 通常のカウントダウンは 最後の赤 + 切替時間
     // delay5 は preDelay で開始前に待つため、ここでは switchMs を通常相当に
     var afterThird = (timing === 'delay5') ? 1000 : delayAfterThird;
-    swSignalTimers.push(setTimeout(fireGo, (sigCount - 1) * 1000 + afterThird));
+    swSignalTimers.push(setTimeout(fireGo, (sigCount - 1) * SW_STEP_MS + afterThird));
   }
 
   function beginAfterArm() {
     // 毎回タッチ／開始のたびにランダム秒数を引き直す
     if (timing === 'random') {
-      switchMs = GO_RANDOM_MS[Math.floor(Math.random() * GO_RANDOM_MS.length)];
+      switchMs = swRandomGoMs();
       delayAfterThird = switchMs;
       goExtra = switchMs;
     }
@@ -1034,6 +1080,9 @@ function openStopwatch() {
   swLoadSignalSettings();
   buildSwDots();
   swLoadHistory();
+  swLoadReaction();
+  swLoadPhotoStock();
+  renderSwStock();
   swLoadLocations();
   document.getElementById('stopwatchOverlay').classList.add('active');
   renderSwLaps();
@@ -1170,9 +1219,20 @@ function swAutoSaveHistory() {
   } else {
     swHistory.unshift(rec);
   }
+  // 本日分のストック写真をこの記録へ入れる（再開→再ストップでは二重に入らない）
+  var stockMerged = swPhotoStock.length ? swPhotoStock.slice() : null;
+  var photosBeforeMerge = rec.photos;
+  if (stockMerged) {
+    rec.photos = rec.photos.concat(stockMerged);
+  }
   if (!swPersistHistory()) {
+    rec.photos = photosBeforeMerge;
     var sub = document.getElementById('swSub');
     if (sub) sub.textContent = '履歴を保存できませんでした（端末の空き容量不足の可能性）';
+  } else if (stockMerged) {
+    swPhotoStock = [];
+    swPersistPhotoStock();
+    renderSwStock();
   }
   renderSwHistory();
   renderSwLocations();
@@ -1195,6 +1255,9 @@ function swSetHistoryMemo(id, text) {
 var SW_MOTORS = ['ノーマル', 'トルクチューン2', 'レブチューン2', 'アトミックチューン2', 'ライトダッシュ', 'パワーダッシュ', 'スプリントダッシュ', 'ハイパーダッシュ3', 'ウルトラダッシュ', 'プラズマダッシュ', 'ジェットダッシュ', 'トルクチューン2 PRO', 'レブチューン2 PRO', 'アトミックチューン2 PRO', 'ライトダッシュPRO', 'ハイパーダッシュPRO', 'マッハダッシュPRO', 'その他'];
 var SW_CHASSIS = ['MSシャーシ', 'MAシャーシ', 'FM-Aシャーシ', 'ARシャーシ', 'VSシャーシ', 'スーパーXXシャーシ', 'スーパーXシャーシ', 'スーパーTZ-Xシャーシ', 'スーパーTZシャーシ', 'スーパーFMシャーシ', 'スーパー1シャーシ', 'ゼロシャーシ', 'タイプ5シャーシ', 'その他'];
 var SW_GEARS = ['3.5:1', '3.7:1', '4:1', '4.2:1', '5:1'];
+function swRangeList(from, to) { var a = []; for (var v = from; v <= to + 1e-9; v += 0.1) a.push(v.toFixed(1)); return a; }
+var SW_VOLTAGES = swRangeList(2.0, 3.6);
+var SW_TIRES = swRangeList(22.0, 36.0);
 function swSpecOf(rec) {
   if (!rec.spec) rec.spec = { motor: '', chassis: '', voltage: '', tire: '', gear: '' };
   return rec.spec;
@@ -1206,8 +1269,8 @@ function swSetHistorySpec(id, kind, value) {
   swPersistHistory();
 }
 function swBuildSpecSelect(kind, value) {
-  var lists = { motor: SW_MOTORS, chassis: SW_CHASSIS, gear: SW_GEARS };
-  var labels = { motor: 'モーター', chassis: 'シャーシ', gear: 'ギヤ比' };
+  var lists = { motor: SW_MOTORS, chassis: SW_CHASSIS, gear: SW_GEARS, voltage: SW_VOLTAGES, tire: SW_TIRES };
+  var labels = { motor: 'モーター', chassis: 'シャーシ', gear: 'ギヤ比', voltage: '電圧（V）', tire: 'タイヤ径（mm）' };
   var sel = document.createElement('select');
   sel.className = 'sw-spec-input';
   var o0 = document.createElement('option');
@@ -1293,10 +1356,41 @@ function renderSwFilterOptions() {
   fillFilterSelect('swFilterMotor', SW_MOTORS, 'モーター：すべて');
   fillFilterSelect('swFilterChassis', SW_CHASSIS, 'シャーシ：すべて');
   fillFilterSelect('swFilterGear', SW_GEARS, 'ギヤ比：すべて');
+  fillFilterSelect('swFilterVoltage', SW_VOLTAGES, '電圧：すべて');
+  fillFilterSelect('swFilterTire', SW_TIRES, 'タイヤ径：すべて');
+}
+function swSyncCalLabel() {
+  var inp = document.getElementById('swFilterDate');
+  var txt = document.getElementById('swCalText');
+  if (!inp || !txt) return;
+  txt.style.display = inp.value ? 'none' : 'flex';
+}
+function swRenderTodaySummary() {
+  var box = document.getElementById('swTodaySummary');
+  if (!box) return;
+  var today = swDateKey(Date.now());
+  var list = swHistory.filter(function(r) { return swDateKey(r.ts) === today; });
+  if (!list.length) {
+    box.textContent = '今日はまだ記録がありません';
+    return;
+  }
+  var best = Math.min.apply(null, list.map(function(r) { return r.totalMs; }));
+  var avg = list.reduce(function(a, r) { return a + r.totalMs; }, 0) / list.length;
+  box.textContent = '今日：' + list.length + '回走行 ／ ベスト ' + formatSwSeconds(best) + '秒 ／ 平均 ' + formatSwSeconds(avg) + '秒';
+}
+function swToggleLocList() {
+  var body = document.getElementById('swLocList');
+  var chev = document.getElementById('swLocChev');
+  if (!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (chev) chev.textContent = open ? '▼' : '▲';
 }
 function renderSwHistory() {
   var box = document.getElementById('swHistoryList');
   if (!box) return;
+  swRenderTodaySummary();
+  swSyncCalLabel();
   box.innerHTML = '';
   if (!swHistory.length) {
     var empty = document.createElement('div');
@@ -1403,26 +1497,12 @@ function renderSwHistory() {
     var chassisSel = swBuildSpecSelect('chassis', spec.chassis);
     chassisSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'chassis', chassisSel.value); });
     grid.appendChild(chassisSel);
-    var voltIn = document.createElement('input');
-    voltIn.type = 'number';
-    voltIn.step = '0.01';
-    voltIn.min = '0';
-    voltIn.inputMode = 'decimal';
-    voltIn.className = 'sw-spec-input';
-    voltIn.placeholder = '電圧（V）';
-    voltIn.value = spec.voltage || '';
-    voltIn.addEventListener('input', function() { swSetHistorySpec(rec.id, 'voltage', voltIn.value); });
-    grid.appendChild(voltIn);
-    var tireIn = document.createElement('input');
-    tireIn.type = 'number';
-    tireIn.step = '0.1';
-    tireIn.min = '0';
-    tireIn.inputMode = 'decimal';
-    tireIn.className = 'sw-spec-input';
-    tireIn.placeholder = 'タイヤ径（mm）';
-    tireIn.value = spec.tire || '';
-    tireIn.addEventListener('input', function() { swSetHistorySpec(rec.id, 'tire', tireIn.value); });
-    grid.appendChild(tireIn);
+    var voltSel = swBuildSpecSelect('voltage', spec.voltage);
+    voltSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'voltage', voltSel.value); });
+    grid.appendChild(voltSel);
+    var tireSel = swBuildSpecSelect('tire', spec.tire);
+    tireSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'tire', tireSel.value); });
+    grid.appendChild(tireSel);
     var gearSel = swBuildSpecSelect('gear', spec.gear);
     gearSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'gear', gearSel.value); });
     grid.appendChild(gearSel);
@@ -1635,6 +1715,69 @@ function renderSwLocations() {
   renderSwFilterOptions();
 }
 
+// ===== 本日分の写真ストック（トップ画面 → ストップで記録へ） =====
+var SW_STOCK_KEY = 'signal_sw_photo_stock';
+var swPhotoStock = [];
+function swStockTodayKey() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function swLoadPhotoStock() {
+  swPhotoStock = [];
+  try {
+    var st = JSON.parse(localStorage.getItem(SW_STOCK_KEY) || 'null');
+    if (st && st.date === swStockTodayKey() && Array.isArray(st.photos)) swPhotoStock = st.photos;
+  } catch (e) {}
+}
+function swPersistPhotoStock() {
+  try { localStorage.setItem(SW_STOCK_KEY, JSON.stringify({ date: swStockTodayKey(), photos: swPhotoStock })); return true; } catch (e) { return false; }
+}
+function swPickStockPhoto() {
+  swPhotoTargetId = '__STOCK__';
+  var inp = document.getElementById('swPhotoInput');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+function swAddStockPhoto(dataUrl) {
+  swPhotoStock.push(dataUrl);
+  if (!swPersistPhotoStock()) {
+    swPhotoStock.pop();
+    alert('写真を保存できませんでした（端末の空き容量不足の可能性）');
+  }
+  renderSwStock();
+}
+function swRemoveStockPhoto(index) {
+  swPhotoStock.splice(index, 1);
+  swPersistPhotoStock();
+  renderSwStock();
+}
+function renderSwStock() {
+  var box = document.getElementById('swStockBox');
+  if (!box) return;
+  var head = document.getElementById('swStockHead');
+  var thumbs = document.getElementById('swStockThumbs');
+  if (!swPhotoStock.length) {
+    box.style.display = 'none';
+    if (thumbs) thumbs.innerHTML = '';
+    return;
+  }
+  box.style.display = '';
+  if (head) head.textContent = '本日のストック：' + swPhotoStock.length + '枚（次のストップで記録に入ります）';
+  thumbs.innerHTML = '';
+  swPhotoStock.forEach(function(url, i) {
+    var wrap = document.createElement('div');
+    wrap.className = 'sw-stock-thumb';
+    var img = document.createElement('img');
+    img.src = url;
+    img.alt = 'ストック写真';
+    img.addEventListener('click', function() { swViewPhoto(url); });
+    var rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'sw-stock-rm';
+    rm.textContent = '×';
+    rm.addEventListener('click', function(ev) { ev.stopPropagation(); swRemoveStockPhoto(i); });
+    wrap.appendChild(img);
+    wrap.appendChild(rm);
+    thumbs.appendChild(wrap);
+  });
+}
+
 // ===== 写真 =====
 var swPhotoTargetId = null;
 function swPickPhoto(id) {
@@ -1693,7 +1836,8 @@ function swOnPhotoFile(input) {
         cv.width = Math.round(img.width * scale);
         cv.height = Math.round(img.height * scale);
         cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        swStorePhoto(targetId, cv.toDataURL('image/jpeg', 0.75));
+        var swDataUrl = cv.toDataURL('image/jpeg', 0.75);
+        if (targetId === '__STOCK__') swAddStockPhoto(swDataUrl); else swStorePhoto(targetId, swDataUrl);
         next();
       };
       img.onerror = next;
@@ -1718,16 +1862,202 @@ function swOpenSettings() {
   if (v) v.classList.add('active');
 }
 function swCloseViews() {
-  ['swHistoryView', 'swSettingsView', 'swChangelogView'].forEach(function(id) {
+  ['swHistoryView', 'swSettingsView', 'swChangelogView', 'swReactionView'].forEach(function(id) {
     var v = document.getElementById(id);
     if (v) v.classList.remove('active');
   });
 }
 
 
+// ===== 反応時間チャレンジ =====
+var swReactionTimers = [];
+var swReactionState = 'idle'; // idle | waiting | go | done | flying
+var swReactionGoTs = 0;
+var swReactionBest = null;
+var swReactionLast = null;
+function swReactionClearTimers() {
+  swReactionTimers.forEach(function(t) { clearTimeout(t); });
+  swReactionTimers = [];
+}
+function swLoadReaction() {
+  try {
+    var b = localStorage.getItem('signal_sw_reaction_best');
+    swReactionBest = (b === null || b === '') ? null : parseFloat(b);
+    if (swReactionBest !== null && isNaN(swReactionBest)) swReactionBest = null;
+    var l = localStorage.getItem('signal_sw_reaction_last');
+    swReactionLast = (l === null || l === '') ? null : parseFloat(l);
+    if (swReactionLast !== null && isNaN(swReactionLast)) swReactionLast = null;
+  } catch (e) { swReactionBest = null; swReactionLast = null; }
+}
+function swPersistReaction() {
+  try {
+    if (swReactionBest === null) localStorage.removeItem('signal_sw_reaction_best');
+    else localStorage.setItem('signal_sw_reaction_best', String(swReactionBest));
+    if (swReactionLast === null) localStorage.removeItem('signal_sw_reaction_last');
+    else localStorage.setItem('signal_sw_reaction_last', String(swReactionLast));
+  } catch (e) {}
+}
+function swReactionBuildDots() {
+  var n = getSwSignalCount();
+  var box = document.getElementById('swReactionDots');
+  if (!box) return;
+  box.innerHTML = '';
+  box.className = 'sw-signal-dots' + (n === 4 ? ' cnt4' : '');
+  for (var i = 1; i <= n; i++) {
+    var d = document.createElement('div');
+    d.className = 'sw-dot';
+    box.appendChild(d);
+  }
+}
+function swReactionSetDots(nRed, allBlue) {
+  var box = document.getElementById('swReactionDots');
+  if (!box) return;
+  for (var i = 0; i < box.children.length; i++) {
+    var el = box.children[i];
+    el.classList.remove('red', 'blue');
+    if (allBlue) el.classList.add('blue');
+    else if (i < nRed) el.classList.add('red');
+  }
+}
+function swReactionResetDots() {
+  var box = document.getElementById('swReactionDots');
+  if (!box) return;
+  for (var i = 0; i < box.children.length; i++) box.children[i].classList.remove('red', 'blue');
+}
+function swRenderReactionStats() {
+  var el = document.getElementById('swReactionStats');
+  if (!el) return;
+  if (swReactionBest === null) {
+    el.textContent = 'まだ記録がありません。青になった瞬間にタップしてください。';
+    return;
+  }
+  var t = 'ベスト ' + formatSwSeconds(swReactionBest) + ' 秒';
+  if (swReactionLast !== null) t += ' ／ 前回 ' + formatSwSeconds(swReactionLast) + ' 秒';
+  el.textContent = t;
+}
+function swReactionSetTap(text, isGo) {
+  var tap = document.getElementById('swReactionTap');
+  if (!tap) return;
+  tap.textContent = text;
+  if (isGo) tap.classList.add('go');
+  else tap.classList.remove('go');
+}
+function swReactionStart() {
+  if (swReactionState === 'waiting' || swReactionState === 'go') return;
+  swReactionClearTimers();
+  swReactionBuildDots();
+  swReactionResetDots();
+  swReactionState = 'waiting';
+  var disp = document.getElementById('swReactionDisplay');
+  if (disp) disp.textContent = '—';
+  var sub = document.getElementById('swReactionSub');
+  if (sub) sub.textContent = '合図中…青になったらタップ！';
+  swReactionSetTap('青を待っています…', false);
+  try { swPrimeVibrate(); } catch (eP) {}
+  var timing = (document.getElementById('swSignalTiming') || {}).value || 'normal';
+  var pattern = (document.getElementById('swSignalPattern') || {}).value || 'countdown';
+  var sigCount = getSwSignalCount();
+  var switchMs = 1000;
+  if (timing === 'delay5') switchMs = 5000;
+  else if (timing === 'random') switchMs = swRandomGoMs();
+  function fireGo() {
+    swReactionSetDots(sigCount, true);
+    swPlaySignalSound('go');
+    swVibratePattern('go');
+    swReactionState = 'go';
+    swReactionGoTs = performance.now();
+    var s2 = document.getElementById('swReactionSub');
+    if (s2) s2.textContent = '青です！今タップ！';
+    swReactionSetTap('今すぐタップ！', true);
+  }
+  if (pattern === 'allred') {
+    swReactionSetDots(sigCount, false);
+    if (sub) sub.textContent = '赤点灯中…青になったらタップ！';
+    swReactionTimers.push(setTimeout(fireGo, switchMs));
+  } else {
+    for (var ci = 1; ci <= sigCount; ci++) {
+      (function(n) {
+        swReactionTimers.push(setTimeout(function() {
+          swReactionSetDots(n, false);
+          swPlaySignalSound('tick');
+          swVibratePattern('tick');
+        }, (n - 1) * SW_STEP_MS));
+      })(ci);
+    }
+    var afterThird = (timing === 'delay5') ? 1000 : switchMs;
+    swReactionTimers.push(setTimeout(fireGo, (sigCount - 1) * SW_STEP_MS + afterThird));
+  }
+}
+function swReactionTap() {
+  if (swReactionState === 'waiting') {
+    // フライング：青の前のタップ
+    swReactionClearTimers();
+    swReactionState = 'flying';
+    swReactionResetDots();
+    var disp = document.getElementById('swReactionDisplay');
+    if (disp) disp.textContent = 'フライング';
+    var sub = document.getElementById('swReactionSub');
+    if (sub) sub.textContent = '青の前にタップしました。もう一度タップで再スタート';
+    swReactionSetTap('タップで再スタート', false);
+    return;
+  }
+  if (swReactionState === 'go') {
+    var ms = performance.now() - swReactionGoTs;
+    swReactionState = 'done';
+    swReactionLast = ms;
+    var isBest = (swReactionBest === null || ms < swReactionBest);
+    if (isBest) swReactionBest = ms;
+    swPersistReaction();
+    var d2 = document.getElementById('swReactionDisplay');
+    if (d2) d2.textContent = formatSwSeconds(ms);
+    var s2 = document.getElementById('swReactionSub');
+    if (s2) s2.textContent = isBest ? '🎉 ベスト更新！' : '反応時間';
+    swRenderReactionStats();
+    swReactionSetTap('タップでもう一度', false);
+    return;
+  }
+  // idle / done / flying: タップで再スタート
+  swReactionStart();
+}
+function swReactionCancel() {
+  swReactionClearTimers();
+  swReactionState = 'idle';
+  swReactionResetDots();
+  var disp = document.getElementById('swReactionDisplay');
+  if (disp) disp.textContent = '—';
+  var sub = document.getElementById('swReactionSub');
+  if (sub) sub.textContent = '青になった瞬間に画面をタップしてください';
+  swReactionSetTap('タップでスタート', false);
+  swRenderReactionStats();
+}
+function swOpenReaction() {
+  swLoadReaction();
+  swReactionBuildDots();
+  swReactionResetDots();
+  swReactionState = 'idle';
+  var disp = document.getElementById('swReactionDisplay');
+  if (disp) disp.textContent = '—';
+  var sub = document.getElementById('swReactionSub');
+  if (sub) sub.textContent = '青になった瞬間に画面をタップしてください';
+  swReactionSetTap('タップでスタート', false);
+  swRenderReactionStats();
+  var v = document.getElementById('swReactionView');
+  if (v) v.classList.add('active');
+}
+function swCloseReaction() {
+  swReactionCancel();
+  swCloseViews();
+}
+
 // ===== バージョンと変更履歴 =====
-var SW_VERSION = 'v11';
+var SW_VERSION = 'v17';
 var SW_CHANGELOG = [
+  { version: 'v17', date: '2026-11-12', items: ['赤が増える間隔を1秒から1.2秒に少しゆっくりにした', '反応時間チャレンジのボタンを、オレンジ枠＋黒ボタンに変えた'] },
+  { version: 'v16', date: '2026-11-12', items: ['ランダムのタイミングを、決まった4つの数字（0.4／1.0／1.8／2.5秒）から選ぶ方式をやめ、0.7〜2.8秒のあいだで毎回本当にランダムに決めるようにした'] },
+  { version: 'v15', date: '2026-11-12', items: ['「⚡ 反応時間チャレンジ」を追加：合図の青になった瞬間にタップして反応時間を0.000秒で表示（フライング判定つき、ベストと前回をこの画面に保存）', '履歴の上に「今日のまとめ」を追加：今日の走行回数／ベスト／平均を表示（記録がない日は「今日はまだ記録がありません」）'] },
+  { version: 'v14', date: '2026-11-12', items: ['変更内容ポップアップに、設定から今までの変更分を確認できる案内文を追加'] },
+  { version: 'v13', date: '2026-11-12', items: ['トップ画面に「📷 写真をストック」ボタンを追加。本日分として写真を一時ストックしておき、ストップしたときにその回の記録へ自動で入る', 'ストックした写真はトップ画面にサムネイルで表示（タップで拡大、×で外せる）。日付が変わるとストックは空になる'] },
+  { version: 'v12', date: '2026-11-12', items: ['電圧を2.0〜3.6V（0.1刻み）のプルダウンにした', 'タイヤ径を22.0〜36.0mm（0.1刻み）のプルダウンにした（絞り込みも同じプルダウンに）', '履歴の日付ボタンに「カレンダー」と表示するようにした', '場所ごとの最速を畳めるようにした'] },
   { version: 'v11', date: '2026-11-12', items: [
     '画面の並びを整理：シグナル → タイム → ボタン → ラップ（履歴と設定は専用画面に）',
     'ストップすると履歴を自動保存（月/日 時：分、ラップも一緒に）',
