@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0d0f">
 <title>シグナル付きストップウォッチ</title>
 <meta name="description" content="ミニ四駆スタート練習用。合図＋計測／シグナルのみ対応。">
 <meta property="og:type" content="website">
@@ -238,6 +239,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-cal-text { position: absolute; left: 1px; right: 1px; top: 1px; bottom: 1px; background: #2c2c2e; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; pointer-events: none; }
 .sw-gps-toggle { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .sw-changelog-btn { width: 100%; background: #3a3a3c; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 16px; box-sizing: border-box; }
+.sw-storage-info { margin: 8px 0 0; font-size: 12px; color: #aeaeb2; min-height: 15px; }
 .sw-changelog-list { margin: 6px 0 10px; padding-left: 20px; color: #d1d1d6; font-size: 13px; line-height: 1.6; }
 .sw-changelog-popup { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 18px; box-sizing: border-box; }
 .sw-changelog-popup.active { display: flex; }
@@ -298,7 +300,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
       <div class="stopwatch-laps" id="swLaps"></div>
 
       <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:10px;">単位は秒です。ベストラップも自動で更新します。</p>
-      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v20</p>
+      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v22</p>
     </div>
   </div>
 
@@ -394,6 +396,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
       </div>
 
       <button type="button" class="sw-changelog-btn" onclick="swOpenChangelog()">📋 変更履歴を見る</button>
+      <p class="sw-storage-info" id="swStorageInfo">保存容量の使用量：約 0.0 MB（写真が多いと増えます）</p>
       <div class="sw-gps-box">
         <div class="sw-loc-head sw-gps-toggle" onclick="swToggleGps()">📍 位置情報（GPS） <span id="swGpsChev">▼</span></div>
         <div class="sw-gps-body" id="swGpsBody" style="display:none;">
@@ -442,8 +445,8 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   <!-- 変更内容ポップアップ（版が上がったときだけ表示） -->
   <div class="sw-changelog-popup active" id="swChangelogPopup">
     <div class="sw-changelog-card">
-      <div class="sw-changelog-title" id="swChangelogPopupTitle">🎉 v20 の変更内容（2026-11-12）</div>
-      <ul class="sw-changelog-list" id="swChangelogPopupList"><li>履歴の保存を読み戻して確認するようにし、失敗したときは「保存できませんでした」と赤字で出るようにした（今までは失敗しても分からなかった）</li><li>別のタブで開いたままの古い画面が、新しく保存した内容を上書きして消してしまうのを防いだ</li></ul>
+      <div class="sw-changelog-title" id="swChangelogPopupTitle">🎉 v22 の変更内容（2026-11-12）</div>
+      <ul class="sw-changelog-list" id="swChangelogPopupList"><li>保存が容量不足で失敗していた問題への対策：保存済みの写真を自動で小さく圧縮し直して容量を空けた（写真自体は残ります）</li><li>新しく追加する写真も小さいサイズで保存するようにした</li><li>設定画面に保存容量の使用量を表示した</li></ul>
       <p class="sw-changelog-note">今までの変更分は、設定の「変更履歴を見る」からいつでも確認できます。</p>
       <button type="button" class="sw-changelog-close" onclick="swCloseChangelogPopup()">閉じる</button>
     </div>
@@ -1922,13 +1925,13 @@ function swOnPhotoFile(input) {
     reader.onload = function() {
       var img = new Image();
       img.onload = function() {
-        var max = 1024;
+        var max = 720;
         var scale = Math.min(1, max / Math.max(img.width, img.height));
         var cv = document.createElement('canvas');
         cv.width = Math.round(img.width * scale);
         cv.height = Math.round(img.height * scale);
         cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        var swDataUrl = cv.toDataURL('image/jpeg', 0.75);
+        var swDataUrl = cv.toDataURL('image/jpeg', 0.65);
         if (targetId === '__STOCK__') swAddStockPhoto(swDataUrl); else swStorePhoto(targetId, swDataUrl);
         next();
       };
@@ -1939,6 +1942,69 @@ function swOnPhotoFile(input) {
     reader.readAsDataURL(file);
   }
   next();
+}
+
+// ===== 容量対策：保存済みの写真を小さく圧縮し直す（初回のみ） =====
+function swShrinkOneDataUrl(url) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    img.onload = function() {
+      try {
+        var max = 720;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * scale);
+        cv.height = Math.round(img.height * scale);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        resolve(cv.toDataURL('image/jpeg', 0.65));
+      } catch (e) { resolve(url); }
+    };
+    img.onerror = function() { resolve(url); };
+    img.src = url;
+  });
+}
+function swShrinkStoredPhotos() {
+  try { if (localStorage.getItem('signal_sw_shrink_v22')) return; } catch (e) { return; }
+  var jobs = [];
+  swHistory.forEach(function(rec) {
+    (rec.photos || []).forEach(function(p, i) { jobs.push({ rec: rec, idx: i }); });
+  });
+  swPhotoStock.forEach(function(p, i) { jobs.push({ stockIdx: i }); });
+  if (!jobs.length) { try { localStorage.setItem('signal_sw_shrink_v22', '1'); } catch (e) {} return; }
+  var chain = Promise.resolve();
+  jobs.forEach(function(job) {
+    chain = chain.then(function() {
+      var cur = job.rec ? job.rec.photos[job.idx] : swPhotoStock[job.stockIdx];
+      if (!cur || cur.indexOf('data:image') !== 0) return null;
+      return swShrinkOneDataUrl(cur).then(function(smaller) {
+        if (smaller && smaller.length < cur.length) {
+          if (job.rec) job.rec.photos[job.idx] = smaller; else swPhotoStock[job.stockIdx] = smaller;
+        }
+      });
+    });
+  });
+  chain.then(function() {
+    swPersistHistory();
+    try { swPersistPhotoStock(); } catch (e) {}
+    try { localStorage.setItem('signal_sw_shrink_v22', '1'); } catch (e) {}
+    try { renderSwHistory(); } catch (e) {}
+    try { renderSwStock(); } catch (e) {}
+    try { swUpdateStorageInfo(); } catch (e) {}
+  });
+}
+function swStorageBytes() {
+  var total = 0;
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      total += (k.length + (localStorage.getItem(k) || '').length) * 2;
+    }
+  } catch (e) {}
+  return total;
+}
+function swUpdateStorageInfo() {
+  var el = document.getElementById('swStorageInfo');
+  if (el) el.textContent = '保存容量の使用量：約 ' + (swStorageBytes() / 1048576).toFixed(1) + ' MB（写真が多いと増えます）';
 }
 
 // ===== 画面の開閉 =====
@@ -1952,6 +2018,7 @@ function swOpenHistory() {
 function swOpenSettings() {
   var v = document.getElementById('swSettingsView');
   if (v) v.classList.add('active');
+  try { swUpdateStorageInfo(); } catch (e) {}
 }
 function swCloseViews() {
   swPersistHistory();
@@ -2143,8 +2210,10 @@ function swCloseReaction() {
 }
 
 // ===== バージョンと変更履歴 =====
-var SW_VERSION = 'v20';
+var SW_VERSION = 'v22';
 var SW_CHANGELOG = [
+  { version: 'v22', date: '2026-11-12', items: ['保存が容量不足で失敗していた問題への対策：保存済みの写真を自動で小さく圧縮し直して容量を空けた（写真自体は残ります）', '新しく追加する写真も小さいサイズで保存するようにした', '設定画面に保存容量の使用量を表示した'] },
+  { version: 'v21', date: '2026-11-12', items: ['Safariの下側がオレンジ色に染まる問題への対策：ブラウザのバーの色をアプリの背景色（暗色）に固定した'] },
   { version: 'v20', date: '2026-11-12', items: ['履歴の保存を読み戻して確認するようにし、失敗したときは「保存できませんでした」と赤字で出るようにした（今までは失敗しても分からなかった）', '別のタブで開いたままの古い画面が、新しく保存した内容を上書きして消してしまうのを防いだ'] },
   { version: 'v19', date: '2026-11-12', items: ['履歴の項目（モーター・タイヤ径など）が更新すると未選択に戻る問題への対策：保存の直前に、画面に表示されている選択内容をそのまま取り込んでから保存するようにした'] },
   { version: 'v18', date: '2026-11-12', items: ['履歴の項目（モーター・タイヤ径など）の保存を強化：選んだ瞬間の自動保存に加え、各記録に「この記録を保存」ボタンと「✓ 保存しました」の表示を追加', '画面を閉じる・切り替えるタイミングでも履歴を保存し直すようにした'] },
@@ -2248,6 +2317,10 @@ window.addEventListener('storage', function(e) {
 // standalone boot
 document.addEventListener('DOMContentLoaded', function() {
   try { openStopwatch(); } catch (e) { console.error(e); }
+  setTimeout(function() {
+    try { swShrinkStoredPhotos(); } catch (e) {}
+    try { swUpdateStorageInfo(); } catch (e) {}
+  }, 900);
 });
 
 </script>
