@@ -231,6 +231,9 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
 .sw-photo-full { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
 .sw-photo-full.active { display: flex; }
 .sw-photo-full img { max-width: 100%; max-height: 100%; }
+.sw-spec-save-row { display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; }
+.sw-spec-save-btn { background: #6BAFD6; color: #fff; border: none; border-radius: 6px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.sw-spec-save-msg { font-size: 12px; color: #30d158; font-weight: 700; }
 .sw-cal-wrap { position: relative; display: inline-block; }
 .sw-cal-text { position: absolute; left: 1px; right: 1px; top: 1px; bottom: 1px; background: #2c2c2e; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; pointer-events: none; }
 .sw-gps-toggle { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
@@ -295,7 +298,7 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
       <div class="stopwatch-laps" id="swLaps"></div>
 
       <p style="font-size:11px;color:#8e8e93;text-align:center;margin-top:10px;">単位は秒です。ベストラップも自動で更新します。</p>
-      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v17</p>
+      <p id="swVersionLabel" style="font-size:12px;color:#636366;text-align:center;margin-top:16px;">v19</p>
     </div>
   </div>
 
@@ -437,10 +440,10 @@ body { font-family: "游ゴシック", "Yu Gothic", "Hiragino Sans", "Meiryo", s
   </div>
 
   <!-- 変更内容ポップアップ（版が上がったときだけ表示） -->
-  <div class="sw-changelog-popup active" id="swChangelogPopup">
+  <div class="sw-changelog-popup" id="swChangelogPopup">
     <div class="sw-changelog-card">
-      <div class="sw-changelog-title" id="swChangelogPopupTitle">🎉 v17 の変更内容（2026-11-12）</div>
-      <ul class="sw-changelog-list" id="swChangelogPopupList"><li>赤が増える間隔を1秒から1.2秒に少しゆっくりにした</li><li>反応時間チャレンジのボタンを、オレンジ枠＋黒ボタンに変えた</li></ul>
+      <div class="sw-changelog-title" id="swChangelogPopupTitle">変更内容</div>
+      <ul class="sw-changelog-list" id="swChangelogPopupList"></ul>
       <p class="sw-changelog-note">今までの変更分は、設定の「変更履歴を見る」からいつでも確認できます。</p>
       <button type="button" class="sw-changelog-close" onclick="swCloseChangelogPopup()">閉じる</button>
     </div>
@@ -1182,7 +1185,29 @@ function swLoadHistory() {
     if ('photo' in rec) delete rec.photo;
   });
 }
+function swHarvestHistoryDom() {
+  // 端末によってはプルダウンの選択イベントが届かないことがあるため、
+  // 保存の直前に「いま画面に出ている選択」をそのままデータへ取り込む
+  var cards = document.querySelectorAll('.sw-history-card');
+  for (var i = 0; i < cards.length; i++) {
+    var id = cards[i].getAttribute('data-rec-id');
+    if (!id) continue;
+    var rec = null;
+    for (var j = 0; j < swHistory.length; j++) {
+      if (String(swHistory[j].id) === String(id)) { rec = swHistory[j]; break; }
+    }
+    if (!rec) continue;
+    var sels = cards[i].querySelectorAll('.sw-spec-grid select');
+    for (var k = 0; k < sels.length; k++) {
+      var kind = sels[k].getAttribute('data-spec-kind');
+      if (kind) swSpecOf(rec)[kind] = sels[k].value;
+    }
+    var memo = cards[i].querySelector('.sw-history-memo');
+    if (memo) rec.memo = memo.value;
+  }
+}
 function swPersistHistory() {
+  try { swHarvestHistoryDom(); } catch (eH) {}
   try {
     localStorage.setItem('signal_sw_history', JSON.stringify(swHistory));
     return true;
@@ -1262,6 +1287,12 @@ function swSpecOf(rec) {
   if (!rec.spec) rec.spec = { motor: '', chassis: '', voltage: '', tire: '', gear: '' };
   return rec.spec;
 }
+function swFlashSaved(msgEl) {
+  if (!msgEl) return;
+  msgEl.textContent = '✓ 保存しました';
+  if (msgEl._swT) clearTimeout(msgEl._swT);
+  msgEl._swT = setTimeout(function() { msgEl.textContent = ''; }, 2000);
+}
 function swSetHistorySpec(id, kind, value) {
   for (var i = 0; i < swHistory.length; i++) {
     if (swHistory[i].id === id) { swSpecOf(swHistory[i])[kind] = value; break; }
@@ -1273,6 +1304,7 @@ function swBuildSpecSelect(kind, value) {
   var labels = { motor: 'モーター', chassis: 'シャーシ', gear: 'ギヤ比', voltage: '電圧（V）', tire: 'タイヤ径（mm）' };
   var sel = document.createElement('select');
   sel.className = 'sw-spec-input';
+  sel.setAttribute('data-spec-kind', kind);
   var o0 = document.createElement('option');
   o0.value = '';
   o0.textContent = labels[kind];
@@ -1428,6 +1460,7 @@ function renderSwHistory() {
   list.forEach(function(rec) {
     var card = document.createElement('div');
     card.className = 'sw-history-card';
+    card.setAttribute('data-rec-id', String(rec.id));
     // 畳んだ状態の見出し行（日時・合計・場所・写真サムネイル）
     var head = document.createElement('div');
     head.className = 'sw-history-mainrow';
@@ -1488,23 +1521,30 @@ function renderSwHistory() {
         body.appendChild(row);
       });
     }
+    var saveMsg = document.createElement('span');
+    saveMsg.className = 'sw-spec-save-msg';
     var spec = swSpecOf(rec);
     var grid = document.createElement('div');
     grid.className = 'sw-spec-grid';
     var motorSel = swBuildSpecSelect('motor', spec.motor);
-    motorSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'motor', motorSel.value); });
+    motorSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'motor', motorSel.value); swFlashSaved(saveMsg); });
+    motorSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'motor', motorSel.value); });
     grid.appendChild(motorSel);
     var chassisSel = swBuildSpecSelect('chassis', spec.chassis);
-    chassisSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'chassis', chassisSel.value); });
+    chassisSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'chassis', chassisSel.value); swFlashSaved(saveMsg); });
+    chassisSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'chassis', chassisSel.value); });
     grid.appendChild(chassisSel);
     var voltSel = swBuildSpecSelect('voltage', spec.voltage);
-    voltSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'voltage', voltSel.value); });
+    voltSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'voltage', voltSel.value); swFlashSaved(saveMsg); });
+    voltSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'voltage', voltSel.value); });
     grid.appendChild(voltSel);
     var tireSel = swBuildSpecSelect('tire', spec.tire);
-    tireSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'tire', tireSel.value); });
+    tireSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'tire', tireSel.value); swFlashSaved(saveMsg); });
+    tireSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'tire', tireSel.value); });
     grid.appendChild(tireSel);
     var gearSel = swBuildSpecSelect('gear', spec.gear);
-    gearSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'gear', gearSel.value); });
+    gearSel.addEventListener('change', function() { swSetHistorySpec(rec.id, 'gear', gearSel.value); swFlashSaved(saveMsg); });
+    gearSel.addEventListener('input', function() { swSetHistorySpec(rec.id, 'gear', gearSel.value); });
     grid.appendChild(gearSel);
     body.appendChild(grid);
     var memo = document.createElement('input');
@@ -1512,8 +1552,18 @@ function renderSwHistory() {
     memo.className = 'sw-history-memo';
     memo.placeholder = 'メモ（例：コースアウト、ブレーキ甘め）';
     memo.value = rec.memo || '';
-    memo.addEventListener('input', function() { swSetHistoryMemo(rec.id, memo.value); });
+    memo.addEventListener('input', function() { swSetHistoryMemo(rec.id, memo.value); swFlashSaved(saveMsg); });
     body.appendChild(memo);
+    var saveRow = document.createElement('div');
+    saveRow.className = 'sw-spec-save-row';
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'sw-spec-save-btn';
+    saveBtn.textContent = 'この記録を保存';
+    saveBtn.addEventListener('click', function() { swPersistHistory(); swFlashSaved(saveMsg); });
+    saveRow.appendChild(saveBtn);
+    saveRow.appendChild(saveMsg);
+    body.appendChild(saveRow);
     var photoBox = document.createElement('div');
     photoBox.className = 'sw-photo-box';
     var photos = Array.isArray(rec.photos) ? rec.photos : [];
@@ -1862,6 +1912,7 @@ function swOpenSettings() {
   if (v) v.classList.add('active');
 }
 function swCloseViews() {
+  swPersistHistory();
   ['swHistoryView', 'swSettingsView', 'swChangelogView', 'swReactionView'].forEach(function(id) {
     var v = document.getElementById(id);
     if (v) v.classList.remove('active');
@@ -2050,8 +2101,10 @@ function swCloseReaction() {
 }
 
 // ===== バージョンと変更履歴 =====
-var SW_VERSION = 'v17';
+var SW_VERSION = 'v19';
 var SW_CHANGELOG = [
+  { version: 'v19', date: '2026-11-12', items: ['履歴の項目（モーター・タイヤ径など）が更新すると未選択に戻る問題への対策：保存の直前に、画面に表示されている選択内容をそのまま取り込んでから保存するようにした'] },
+  { version: 'v18', date: '2026-11-12', items: ['履歴の項目（モーター・タイヤ径など）の保存を強化：選んだ瞬間の自動保存に加え、各記録に「この記録を保存」ボタンと「✓ 保存しました」の表示を追加', '画面を閉じる・切り替えるタイミングでも履歴を保存し直すようにした'] },
   { version: 'v17', date: '2026-11-12', items: ['赤が増える間隔を1秒から1.2秒に少しゆっくりにした', '反応時間チャレンジのボタンを、オレンジ枠＋黒ボタンに変えた'] },
   { version: 'v16', date: '2026-11-12', items: ['ランダムのタイミングを、決まった4つの数字（0.4／1.0／1.8／2.5秒）から選ぶ方式をやめ、0.7〜2.8秒のあいだで毎回本当にランダムに決めるようにした'] },
   { version: 'v15', date: '2026-11-12', items: ['「⚡ 反応時間チャレンジ」を追加：合図の青になった瞬間にタップして反応時間を0.000秒で表示（フライング判定つき、ベストと前回をこの画面に保存）', '履歴の上に「今日のまとめ」を追加：今日の走行回数／ベスト／平均を表示（記録がない日は「今日はまだ記録がありません」）'] },
@@ -2139,6 +2192,9 @@ function swToggleGps() {
   body.style.display = open ? 'none' : '';
   if (chev) chev.textContent = open ? '▼' : '▲';
 }
+
+window.addEventListener('pagehide', function() { try { swPersistHistory(); } catch (e) {} });
+document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') { try { swPersistHistory(); } catch (e) {} } });
 
 // standalone boot
 document.addEventListener('DOMContentLoaded', function() {
